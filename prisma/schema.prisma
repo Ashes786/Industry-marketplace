@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  BOTH
+}
+
+enum SubscriptionPlan {
+  BASIC
+  STANDARD
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum RFQStatus {
+  OPEN
+  IN_NEGOTIATION
+  APPROVED
+  CLOSED
+  CANCELLED
+}
+
+enum TransactionStatus {
+  PENDING
+  PAID
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  phone        String?
+  name         String?
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(BUYER)
+  isApproved   Boolean  @default(false)
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  buyerRFQs    RFQ[]
+  sellerRFQs   RFQ[]      @relation("SellerRFQs")
+  products     Product[]
+  subscriptions Subscription[]
+  buyerTransactions Transaction[] @relation("TransactionBuyer")
+  sellerTransactions Transaction[] @relation("TransactionSeller")
+  sentMessages Chat[]     @relation("SentMessages")
+  receivedMessages Chat[] @relation("ReceivedMessages")
+  extraListings ExtraListing[]
+  adminLogs    AdminLog[]
+
+  @@map("users")
+}
+
+model Subscription {
+  id          String              @id @default(cuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType    SubscriptionPlan
+  startDate   DateTime
+  endDate     DateTime
+  status      SubscriptionStatus @default(ACTIVE)
+  amount      Float
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  sellerId       String
+  seller         User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  title          String
+  description    String
+  price          Float
+  quantity       Int
+  unit           String   @default("unit")
+  category       String
+  images         String?  // JSON string array of image URLs
+  isActive       Boolean  @default(true)
+  views          Int      @default(0)
+  planListingId  String?  @unique // Optional tracking for plan limits
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  transactions Transaction[]
+
+  @@map("products")
+}
+
+model RFQ {
+  id          String    @id @default(cuid())
+  buyerId     String
+  buyer       User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  sellerId    String?
+  seller      User?     @relation("SellerRFQs", fields: [sellerId], references: [id])
+  title       String
+  description String
+  quantity    Int
+  unit        String    @default("unit")
+  budget      Float?
+  deadline    DateTime?
+  status      RFQStatus @default(OPEN)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  chats       Chat[]
+  transactions Transaction[]
+
+  @@map("rfqs")
+}
+
+model Chat {
+  id           String   @id @default(cuid())
+  rfqId        String
+  rfq          RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  senderId     String
+  sender       User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId   String
+  receiver     User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  messageText  String?
+  attachments  String?  // JSON string array of file URLs
+  timestamp    DateTime @default(now())
+
+  @@map("chats")
+}
+
+model Transaction {
+  id              String           @id @default(cuid())
+  rfqId           String?
+  rfq             RFQ?             @relation(fields: [rfqId], references: [id])
+  productId       String?
+  product         Product?         @relation(fields: [productId], references: [id])
+  buyerId         String
+  buyer           User             @relation("TransactionBuyer", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User             @relation("TransactionSeller", fields: [sellerId], references: [id])
+  productPrice    Float
+  commissionAmount Float
+  totalAmount     Float
+  status          TransactionStatus @default(PENDING)
+  paymentDate     DateTime?
+  invoiceNumber   String           @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  invoice Invoice?
+
+  @@map("transactions")
+}
+
+model ExtraListing {
+  id            String   @id @default(cuid())
+  sellerId      String
+  seller        User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  listingCount  Int
+  amountPaid    Float
+  createdAt     DateTime @default(now())
+
+  @@map("extra_listings")
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  transactionId String   @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  invoiceNumber String   @unique
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
+
+  @@map("invoices")
+}
+
+model AdminLog {
+  id           String   @id @default(cuid())
+  adminId      String
+  admin        User     @relation(fields: [adminId], references: [id])
+  action       String
+  targetUserId String?
+  details      String?
+  timestamp    DateTime @default(now())
+
+  @@map("admin_logs")
+}
