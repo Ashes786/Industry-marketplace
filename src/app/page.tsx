@@ -1,28 +1,157 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle, Users, ShoppingCart, TrendingUp, Shield, Clock, MessageSquare, CreditCard } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  Menu, 
+  X, 
+  Search, 
+  Building2, 
+  ShoppingCart, 
+  Store, 
+  TrendingUp, 
+  Shield, 
+  Clock,
+  CheckCircle,
+  Star,
+  Users,
+  BarChart3,
+  MessageSquare,
+  Package,
+  Handshake,
+  ArrowRight,
+  Phone,
+  Mail,
+  MapPin
+} from 'lucide-react'
 
 export default function Home() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [email, setEmail] = useState('')
 
-  const handleGetStarted = (role: 'buyer' | 'seller') => {
-    if (session) {
-      router.push('/dashboard')
-    } else {
-      router.push(`/auth/signup?role=${role}`)
+  const subscriptionPlans = {
+    basic: {
+      name: 'Basic',
+      price: 'Free',
+      features: ['1-2 listings', 'Limited RFQs', 'Lower search visibility'],
+      color: 'bg-gray-100 text-gray-800',
+      popular: false
+    },
+    standard: {
+      name: 'Standard',
+      price: 'Rs. 5,000/month',
+      features: ['20 listings', 'Unlimited RFQs', 'Analytics dashboard', 'Company profile', 'Email support'],
+      color: 'bg-blue-100 text-blue-800',
+      popular: true
+    },
+    premium: {
+      name: 'Premium',
+      price: 'Rs. 12,000/month',
+      features: ['Unlimited listings', 'Priority RFQs', 'Advanced analytics', 'Featured badge', 'Dedicated support', 'Priority placement'],
+      color: 'bg-purple-100 text-purple-800',
+      popular: false
     }
   }
+
+  const testimonials = [
+    {
+      name: 'Ahmed Khan',
+      company: 'Steel Industries Ltd',
+      role: 'Procurement Manager',
+      content: 'This platform has transformed our sourcing process. We found reliable suppliers and saved 30% on raw material costs.',
+      rating: 5
+    },
+    {
+      name: 'Fatima Ali',
+      company: 'Textile Mills',
+      role: 'CEO',
+      content: 'As a seller, the premium plan helped us reach quality buyers across Pakistan. Our revenue increased by 45% in 3 months.',
+      rating: 5
+    },
+    {
+      name: 'Muhammad Raza',
+      company: 'Construction Co.',
+      role: 'Operations Director',
+      content: 'The RFQ system is efficient and the chat feature makes negotiations smooth. Highly recommended for B2B trading.',
+      rating: 4
+    }
+  ]
+
+  const features = [
+    {
+      icon: <Search className="h-8 w-8 text-blue-600" />,
+      title: 'Smart Search',
+      description: 'Find exactly what you need with our advanced search and filtering system'
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-green-600" />,
+      title: 'Verified Suppliers',
+      description: 'All sellers are verified and approved to ensure quality and reliability'
+    },
+    {
+      icon: <MessageSquare className="h-8 w-8 text-purple-600" />,
+      title: 'Real-time Chat',
+      description: 'Negotiate directly with suppliers through our integrated chat system'
+    },
+    {
+      icon: <BarChart3 className="h-8 w-8 text-orange-600" />,
+      title: 'Analytics Dashboard',
+      description: 'Track your business performance with detailed insights and reports'
+    }
+  ]
+
+  const howItWorks = [
+    {
+      step: 1,
+      title: 'Sign Up',
+      description: 'Create your account as a buyer, seller, or both',
+      icon: <Users className="h-12 w-12 text-blue-600" />
+    },
+    {
+      step: 2,
+      title: 'Connect',
+      description: 'Post RFQs or list products and start connecting',
+      icon: <Handshake className="h-12 w-12 text-green-600" />
+    },
+    {
+      step: 3,
+      title: 'Trade',
+      description: 'Negotiate, finalize deals, and grow your business',
+      icon: <TrendingUp className="h-12 w-12 text-purple-600" />
+    }
+  ]
+
+  const painPoints = [
+    {
+      title: 'Limited Supplier Access',
+      solution: 'Connect with hundreds of verified suppliers across Pakistan',
+      icon: <Store className="h-6 w-6 text-red-600" />
+    },
+    {
+      title: 'Price Negotiation Hassles',
+      solution: 'Streamlined RFQ process with real-time chat negotiations',
+      icon: <MessageSquare className="h-6 w-6 text-red-600" />
+    },
+    {
+      title: 'Quality Concerns',
+      solution: 'Verified sellers with ratings and reviews system',
+      icon: <Shield className="h-6 w-6 text-red-600" />
+    },
+    {
+      title: 'Slow Procurement',
+      solution: 'Fast RFQ responses and quick deal finalization',
+      icon: <Clock className="h-6 w-6 text-red-600" />
+    }
+  ]
 
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-gray-200">
+      <nav className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -31,486 +160,317 @@ export default function Home() {
               </div>
               <div className="hidden md:block ml-10">
                 <div className="flex items-baseline space-x-4">
-                  <a href="#features" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Features</a>
-                  <a href="#how-it-works" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">How it Works</a>
-                  <a href="#pricing" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Pricing</a>
-                  <a href="#testimonials" className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Testimonials</a>
+                  <a href="#features" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Features</a>
+                  <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">How it Works</a>
+                  <a href="#pricing" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Pricing</a>
+                  <a href="#testimonials" className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium">Testimonials</a>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              {status === 'authenticated' ? (
-                <>
-                  {session.user.isAdmin && (
-                    <Button variant="outline" size="sm" onClick={() => router.push('/admin')}>
-                      Admin Panel
-                    </Button>
-                  )}
-                  <Button size="sm" onClick={() => router.push('/dashboard')}>
-                    Dashboard
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => router.push('/auth/signin')}>
-                    Login
-                  </Button>
-                  <Button size="sm" onClick={() => router.push('/auth/signup')}>
-                    Sign Up
-                  </Button>
-                </>
-              )}
+            <div className="hidden md:block">
+              <div className="ml-4 flex items-center space-x-4">
+                <Button variant="ghost" asChild>
+                  <a href="/login">Sign In</a>
+                </Button>
+                <Button asChild>
+                  <a href="/signup">Get Started</a>
+                </Button>
+              </div>
+            </div>
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </Button>
             </div>
           </div>
         </div>
+
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+              <a href="#features" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">Features</a>
+              <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">How it Works</a>
+              <a href="#pricing" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">Pricing</a>
+              <a href="#testimonials" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">Testimonials</a>
+              <div className="pt-4 pb-3 border-t border-gray-200">
+                <div className="flex items-center px-5">
+                  <Button variant="ghost" className="w-full justify-start" asChild>
+                    <a href="/login">Sign In</a>
+                  </Button>
+                </div>
+                <div className="mt-3 px-2">
+                  <Button className="w-full" asChild>
+                    <a href="/signup">Get Started</a>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Pakistan's Premier B2B Industrial Marketplace
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 text-blue-100">
-              Connect with trusted suppliers and buyers for raw materials, semi-finished goods, and industrial products
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="bg-white text-blue-600 hover:bg-gray-100"
-                onClick={() => handleGetStarted('buyer')}
-              >
-                Start as Buyer
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-white text-white hover:bg-white hover:text-blue-600"
-                onClick={() => handleGetStarted('seller')}
-              >
-                Start as Seller
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Value Proposition */}
-      <section id="features" className="py-16 bg-gray-50">
+      <section className="bg-gradient-to-br from-blue-600 to-purple-700 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose B2B Pakistan?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We're revolutionizing how Pakistani businesses trade industrial goods with transparency, efficiency, and trust.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center">
-              <CardHeader>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-6 h-6 text-blue-600" />
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                Pakistan's Premier B2B Industrial Marketplace
+              </h1>
+              <p className="text-xl mb-8 text-blue-100">
+                Connect with trusted suppliers and buyers. Streamline your procurement and expand your business reach across Pakistan.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
+                  <a href="/signup">
+                    Get Started Free
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </a>
+                </Button>
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" asChild>
+                  <a href="#how-it-works">Learn More</a>
+                </Button>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold">1000+</div>
+                    <div className="text-blue-100">Verified Suppliers</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold">5000+</div>
+                    <div className="text-blue-100">Products Listed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold">98%</div>
+                    <div className="text-blue-100">Success Rate</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold">24/7</div>
+                    <div className="text-blue-100">Support</div>
+                  </div>
                 </div>
-                <CardTitle>Verified Network</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Connect with pre-verified businesses across Pakistan. Every member undergoes thorough verification to ensure authenticity.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="w-6 h-6 text-green-600" />
-                </div>
-                <CardTitle>Smart Matching</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Our AI-powered system matches your requirements with the most suitable suppliers, saving you time and resources.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Shield className="w-6 h-6 text-purple-600" />
-                </div>
-                <CardTitle>Secure Transactions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  All transactions are secured with escrow protection, ensuring both buyers and sellers are protected throughout the process.
-                </CardDescription>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Pain Points Solved */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Solving Real Business Challenges
+              Common B2B Challenges, Solved
             </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              We understand the pain points of Pakistani businesses and have built solutions to address them
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div>
-              <h3 className="text-2xl font-semibold text-red-600 mb-6">Common Problems</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Limited Supplier Discovery</h4>
-                    <p className="text-gray-600">Struggling to find reliable suppliers for specific industrial materials</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Price Negotiation Hassles</h4>
-                    <p className="text-gray-600">Time-consuming back-and-forth negotiations without transparency</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Quality Assurance Concerns</h4>
-                    <p className="text-gray-600">Uncertainty about product quality and supplier reliability</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Payment Security Issues</h4>
-                    <p className="text-gray-600">Risk of fraud and delayed payments in traditional transactions</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-2xl font-semibold text-green-600 mb-6">Our Solutions</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Comprehensive Supplier Directory</h4>
-                    <p className="text-gray-600">Access to thousands of verified suppliers across all industrial categories</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Streamlined RFQ Process</h4>
-                    <p className="text-gray-600">Post requirements once, receive multiple competitive quotes instantly</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Verified Business Profiles</h4>
-                    <p className="text-gray-600">Detailed supplier verification with ratings and reviews from real buyers</p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-gray-900">Secure Payment Gateway</h4>
-                    <p className="text-gray-600">Escrow-based payment system with buyer protection and guaranteed payments</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {painPoints.map((point, index) => (
+              <Card key={index} className="text-center">
+                <CardHeader>
+                  <div className="mx-auto mb-4">{point.icon}</div>
+                  <CardTitle className="text-lg">{point.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">{point.solution}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Powerful Features for Your Business
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Everything you need to streamline your B2B trading process
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="mx-auto mb-4">{feature.icon}</div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">{feature.description}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 bg-gray-50">
+      <section id="how-it-works" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               How It Works
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Get started in three simple steps
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-blue-600">1</span>
+          <div className="grid md:grid-cols-3 gap-8">
+            {howItWorks.map((step, index) => (
+              <div key={index} className="text-center">
+                <div className="mx-auto mb-6">{step.icon}</div>
+                <div className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-4 font-bold">
+                  {step.step}
+                </div>
+                <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
+                <p className="text-gray-600">{step.description}</p>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Sign Up & Choose Your Role</h3>
-              <p className="text-gray-600">
-                Create your account and select whether you want to buy, sell, or do both. Sellers can choose their subscription plan.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-green-600">2</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Post & Connect</h3>
-              <p className="text-gray-600">
-                Buyers post RFQs, sellers list products. Our platform connects you with the right business partners.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl font-bold text-purple-600">3</span>
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Negotiate & Trade</h3>
-              <p className="text-gray-600">
-                Use our chat system to negotiate terms, finalize deals, and complete secure transactions.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-16 bg-white">
+      <section id="pricing" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Seller Subscription Plans
+              Choose Your Plan
             </h2>
-            <p className="text-xl text-gray-600">
-              Choose the plan that fits your business needs
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Flexible pricing plans for businesses of all sizes
             </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="relative">
-              <CardHeader className="text-center">
-                <CardTitle className="text-xl">Basic</CardTitle>
-                <div className="text-3xl font-bold">Free</div>
-                <CardDescription>Perfect for getting started</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">1-2 product listings</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Limited RFQ responses</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Basic search visibility</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Standard support</span>
-                </div>
-                <Button className="w-full" variant="outline" onClick={() => handleGetStarted('seller')}>Get Started</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="relative border-2 border-blue-500">
-              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                Most Popular
-              </Badge>
-              <CardHeader className="text-center">
-                <CardTitle className="text-xl">Standard</CardTitle>
-                <div className="text-3xl font-bold">Rs. 5,000<span className="text-sm font-normal">/month</span></div>
-                <CardDescription>For growing businesses</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">20 product listings</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Unlimited RFQ responses</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Enhanced search visibility</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Basic analytics dashboard</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Company profile features</span>
-                </div>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={() => handleGetStarted('seller')}>Get Started</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="relative">
-              <CardHeader className="text-center">
-                <CardTitle className="text-xl">Premium</CardTitle>
-                <div className="text-3xl font-bold">Rs. 12,000<span className="text-sm font-normal">/month</span></div>
-                <CardDescription>For established businesses</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Unlimited product listings</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Priority RFQ access</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Advanced analytics</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Featured seller badge</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Dedicated account manager</span>
-                </div>
-                <Button className="w-full" onClick={() => handleGetStarted('seller')}>Get Started</Button>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {Object.entries(subscriptionPlans).map(([key, plan]) => (
+              <Card key={key} className={`relative ${plan.popular ? 'border-blue-500 shadow-xl' : ''}`}>
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-blue-600 text-white px-4 py-1">Most Popular</Badge>
+                  </div>
+                )}
+                <CardHeader className="text-center">
+                  <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <div className="text-3xl font-bold">{plan.price}</div>
+                  <CardDescription>Perfect for growing businesses</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 mb-6">
+                    {plan.features.map((feature, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                    variant={plan.popular ? 'default' : 'outline'}
+                    asChild
+                  >
+                    <a href="/signup">Get Started</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          
           <div className="text-center mt-8">
             <p className="text-gray-600">
-              <strong>Buyers:</strong> No subscription fees. Pay only a small commission on successful purchases.
+              Buyer accounts are always free. Pay only when you make a purchase.
             </p>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-16 bg-gray-50">
+      <section id="testimonials" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               What Our Users Say
             </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Join thousands of satisfied businesses across Pakistan
+            </p>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4">
-                  "B2B Pakistan has transformed our procurement process. We now find reliable suppliers in hours instead of weeks."
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-                  <div>
-                    <div className="font-semibold">Ahmed Khan</div>
-                    <div className="text-sm text-gray-500">Manufacturing Co.</div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4">
-                  "The platform helped us expand our customer base across Pakistan. Sales increased by 40% in just 3 months!"
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+                  <p className="text-gray-600 mb-4 italic">
+                    "{testimonial.content}"
+                  </p>
                   <div>
-                    <div className="font-semibold">Fatima Ali</div>
-                    <div className="text-sm text-gray-500">Steel Supplier</div>
+                    <div className="font-semibold">{testimonial.name}</div>
+                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                    <div className="text-sm text-gray-500">{testimonial.company}</div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center space-x-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">★</span>
-                  ))}
-                </div>
-                <p className="text-gray-600 mb-4">
-                  "Secure payments and verified suppliers give us peace of mind. It's the future of B2B trading in Pakistan."
-                </p>
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-                  <div>
-                    <div className="font-semibold">Bilal Ahmed</div>
-                    <div className="text-sm text-gray-500">Construction Firm</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-blue-600 text-white">
+      <section className="py-20 bg-blue-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Transform Your Business?
+            Ready to Transform Your B2B Trading?
           </h2>
           <p className="text-xl mb-8 text-blue-100">
-            Join thousands of Pakistani businesses already using B2B Pakistan
+            Join thousands of Pakistani businesses already using our platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" onClick={() => handleGetStarted('buyer')}>
-              Start Free Trial
+            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100" asChild>
+              <a href="/signup">Start Free Trial</a>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
-              Schedule Demo
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600" asChild>
+              <a href="#contact">Contact Sales</a>
             </Button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-2xl font-bold mb-4">B2B Pakistan</h3>
+              <h3 className="text-xl font-bold mb-4">B2B Pakistan</h3>
               <p className="text-gray-400">
-                Connecting Pakistani businesses for a stronger industrial ecosystem.
+                Pakistan's leading B2B industrial marketplace connecting buyers and suppliers nationwide.
               </p>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
+              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">About Us</a></li>
-                <li><a href="#" className="hover:text-white">How it Works</a></li>
-                <li><a href="#" className="hover:text-white">Pricing</a></li>
-                <li><a href="#" className="hover:text-white">Success Stories</a></li>
+                <li><a href="/login" className="hover:text-white">Sign In</a></li>
+                <li><a href="/signup" className="hover:text-white">Sign Up</a></li>
+                <li><a href="#features" className="hover:text-white">Features</a></li>
+                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
+              <h4 className="text-lg font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><a href="#" className="hover:text-white">Help Center</a></li>
                 <li><a href="#" className="hover:text-white">Contact Us</a></li>
@@ -518,19 +478,26 @@ export default function Home() {
                 <li><a href="#" className="hover:text-white">Terms of Service</a></li>
               </ul>
             </div>
-            
             <div>
-              <h4 className="font-semibold mb-4">Contact Info</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>Email: info@b2bpakistan.com</li>
-                <li>Phone: +92 123 456 7890</li>
-                <li>Address: Karachi, Pakistan</li>
-              </ul>
+              <h4 className="text-lg font-semibold mb-4">Contact Info</h4>
+              <div className="space-y-2 text-gray-400">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  <span>+92 123 456 7890</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  <span>info@b2bpakistan.com</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  <span>Karachi, Pakistan</span>
+                </div>
+              </div>
             </div>
           </div>
-          
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>© 2024 B2B Pakistan. All rights reserved.</p>
+            <p>&copy; 2024 B2B Pakistan. All rights reserved.</p>
           </div>
         </div>
       </footer>

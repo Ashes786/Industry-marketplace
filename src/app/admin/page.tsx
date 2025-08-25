@@ -1,462 +1,665 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Progress } from '@/components/ui/progress'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarGroupContent, 
+  SidebarGroupLabel, 
+  SidebarHeader, 
+  SidebarMenu, 
+  SidebarMenuButton, 
+  SidebarMenuItem, 
+  SidebarProvider, 
+  SidebarTrigger 
+} from '@/components/ui/sidebar'
 import { 
   Users, 
+  Package, 
   ShoppingCart, 
   DollarSign, 
   TrendingUp, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  AlertTriangle,
+  Settings, 
+  LogOut,
+  Bell,
   Eye,
-  Check,
-  X
+  CheckCircle,
+  XCircle,
+  Clock,
+  BarChart3,
+  FileText,
+  Shield,
+  Star,
+  Search,
+  Filter,
+  MoreHorizontal,
+  UserCheck,
+  UserX,
+  CreditCard
 } from 'lucide-react'
 
-interface User {
-  id: string
-  email: string
-  name?: string
-  phone?: string
-  role: string
-  isApproved: boolean
-  isAdmin: boolean
-  createdAt: string
+// Mock data for demonstration
+const mockUsers = [
+  {
+    id: '1',
+    name: 'Ahmed Khan',
+    email: 'ahmed@example.com',
+    phone: '03001234567',
+    roles: 'BUYER',
+    companyName: 'Construction Co.',
+    isApproved: true,
+    createdAt: '2024-01-15',
+    lastLogin: '2024-01-20'
+  },
+  {
+    id: '2',
+    name: 'Fatima Ali',
+    email: 'fatima@example.com',
+    phone: '03001234568',
+    roles: 'SELLER',
+    companyName: 'Textile Mills',
+    isApproved: true,
+    createdAt: '2024-01-10',
+    lastLogin: '2024-01-19'
+  },
+  {
+    id: '3',
+    name: 'Muhammad Raza',
+    email: 'raza@example.com',
+    phone: '03001234569',
+    roles: 'BOTH',
+    companyName: 'Industrial Solutions',
+    isApproved: false,
+    createdAt: '2024-01-18',
+    lastLogin: '2024-01-18'
+  }
+]
+
+const mockSubscriptions = [
+  {
+    id: '1',
+    userName: 'Fatima Ali',
+    userEmail: 'fatima@example.com',
+    planType: 'STANDARD',
+    amount: 5000,
+    startDate: '2024-01-01',
+    endDate: '2024-02-01',
+    status: 'ACTIVE'
+  },
+  {
+    id: '2',
+    userName: 'Muhammad Raza',
+    userEmail: 'raza@example.com',
+    planType: 'BASIC',
+    amount: 0,
+    startDate: '2024-01-15',
+    endDate: '2025-01-15',
+    status: 'ACTIVE'
+  }
+]
+
+const mockTransactions = [
+  {
+    id: '1',
+    buyerName: 'Ahmed Khan',
+    sellerName: 'Fatima Ali',
+    amount: 450000,
+    commission: 9000,
+    status: 'COMPLETED',
+    date: '2024-01-15',
+    paymentMethod: 'Bank Transfer'
+  },
+  {
+    id: '2',
+    buyerName: 'Ahmed Khan',
+    sellerName: 'Steel Industries',
+    amount: 190000,
+    commission: 3800,
+    status: 'PAID',
+    date: '2024-01-10',
+    paymentMethod: 'JazzCash'
+  },
+  {
+    id: '3',
+    buyerName: 'Construction Co.',
+    sellerName: 'Muhammad Raza',
+    amount: 350000,
+    commission: 7000,
+    status: 'PENDING',
+    date: '2024-01-20',
+    paymentMethod: 'EasyPaisa'
+  }
+]
+
+const mockAnalytics = {
+  totalUsers: 156,
+  activeUsers: 89,
+  totalSellers: 67,
+  totalBuyers: 124,
+  monthlyRevenue: 2840000,
+  totalTransactions: 342,
+  commissionRevenue: 156000,
+  pendingApprovals: 3,
+  activeSubscriptions: 45
 }
 
-interface Subscription {
-  id: string
-  userId: string
-  planType: string
-  startDate: string
-  endDate: string
-  status: string
-  amount: number
-  user: {
-    name?: string
-    email: string
+const mockRecentActivity = [
+  {
+    id: '1',
+    action: 'New User Registration',
+    user: 'Muhammad Raza',
+    details: 'Registered as SELLER',
+    timestamp: '2 hours ago'
+  },
+  {
+    id: '2',
+    action: 'Payment Completed',
+    user: 'Ahmed Khan',
+    details: 'Transaction #123 completed',
+    timestamp: '5 hours ago'
+  },
+  {
+    id: '3',
+    action: 'Subscription Upgraded',
+    user: 'Fatima Ali',
+    details: 'Upgraded to STANDARD plan',
+    timestamp: '1 day ago'
   }
-}
+]
 
-interface Transaction {
-  id: string
-  productPrice: number
-  commissionAmount: number
-  totalAmount: number
-  status: string
-  invoiceNumber: string
-  createdAt: string
-  buyer: {
-    name?: string
-    email: string
-  }
-  seller: {
-    name?: string
-    email: string
-  }
-}
+export default function AdminPanel() {
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
 
-interface DashboardStats {
-  totalUsers: number
-  pendingApprovals: number
-  activeSubscriptions: number
-  totalTransactions: number
-  totalRevenue: number
-  monthlyRevenue: number
-}
-
-export default function AdminDashboard() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const [users, setUsers] = useState<User[]>([])
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin')
-      return
-    }
-
-    if (session && !session.user.isAdmin) {
-      router.push('/dashboard')
-      return
-    }
-
-    if (session && session.user.isAdmin) {
-      fetchData()
-    }
-  }, [session, status, router])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      
-      const [usersRes, subscriptionsRes, transactionsRes, statsRes] = await Promise.all([
-        fetch('/api/admin/users'),
-        fetch('/api/admin/subscriptions'),
-        fetch('/api/admin/transactions'),
-        fetch('/api/admin/stats')
-      ])
-
-      if (usersRes.ok) {
-        const usersData = await usersRes.json()
-        setUsers(usersData)
-      }
-
-      if (subscriptionsRes.ok) {
-        const subscriptionsData = await subscriptionsRes.json()
-        setSubscriptions(subscriptionsData)
-      }
-
-      if (transactionsRes.ok) {
-        const transactionsData = await transactionsRes.json()
-        setTransactions(transactionsData)
-      }
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setStats(statsData)
-      }
-    } catch (error) {
-      setError('Failed to fetch admin data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleApproveUser = async (userId: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/approve`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        setUsers(prev => prev.map(user => 
-          user.id === userId ? { ...user, isApproved: true } : user
-        ))
-        fetchData() // Refresh stats
-      }
-    } catch (error) {
-      console.error('Error approving user:', error)
-    }
-  }
-
-  const handleRejectUser = async (userId: string) => {
-    try {
-      const response = await fetch(`/api/admin/users/${userId}/reject`, {
-        method: 'POST'
-      })
-
-      if (response.ok) {
-        setUsers(prev => prev.filter(user => user.id !== userId))
-        fetchData() // Refresh stats
-      }
-    } catch (error) {
-      console.error('Error rejecting user:', error)
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case 'BUYER':
-        return <Badge className="bg-blue-100 text-blue-800">Buyer</Badge>
-      case 'SELLER':
-        return <Badge className="bg-green-100 text-green-800">Seller</Badge>
-      case 'BOTH':
-        return <Badge className="bg-purple-100 text-purple-800">Both</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>
-    }
-  }
-
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      case 'PAID':
-        return <Badge className="bg-blue-100 text-blue-800">Paid</Badge>
-      case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case 'FAILED':
-        return <Badge variant="destructive">Failed</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>
+      case 'ACTIVE': return 'bg-green-100 text-green-800'
+      case 'COMPLETED': return 'bg-green-100 text-green-800'
+      case 'PAID': return 'bg-blue-100 text-blue-800'
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
+      case 'EXPIRED': return 'bg-gray-100 text-gray-800'
+      case 'CANCELLED': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    )
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'BUYER': return 'bg-blue-100 text-blue-800'
+      case 'SELLER': return 'bg-green-100 text-green-800'
+      case 'BOTH': return 'bg-purple-100 text-purple-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
   }
 
-  if (!session || !session.user.isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-        </div>
-      </div>
-    )
+  const handleUserApproval = async (userId: string, approve: boolean) => {
+    console.log(`${approve ? 'Approving' : 'Rejecting'} user: ${userId}`)
+    // TODO: Implement user approval/rejection API call
   }
+
+  const filteredUsers = mockUsers.filter(user =>
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-            <div className="ml-auto">
-              <Button variant="outline" size="sm" onClick={() => router.push('/dashboard')}>
-                Back to Dashboard
-              </Button>
+    <SidebarProvider>
+      <div className="flex h-screen bg-gray-50">
+        {/* Sidebar */}
+        <Sidebar className="w-64">
+          <SidebarHeader className="border-b p-4">
+            <div className="flex items-center gap-2">
+              <Shield className="h-6 w-6 text-blue-600" />
+              <h1 className="text-lg font-semibold">Admin Panel</h1>
             </div>
-          </div>
-        </div>
-      </header>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'dashboard' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('dashboard')}
+                      >
+                        <BarChart3 className="h-4 w-4" />
+                        <span>Overview</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            
+            <SidebarGroup>
+              <SidebarGroupLabel>User Management</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'users' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('users')}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Users</span>
+                        {mockUsers.filter(u => !u.isApproved).length > 0 && (
+                          <Badge className="ml-auto bg-red-500 text-white">
+                            {mockUsers.filter(u => !u.isApproved).length}
+                          </Badge>
+                        )}
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'subscriptions' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('subscriptions')}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>Subscriptions</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+            <SidebarGroup>
+              <SidebarGroupLabel>Transactions</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'transactions' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('transactions')}
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        <span>All Transactions</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-        {/* Stats Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalUsers}</div>
-                <p className="text-xs text-muted-foreground">
-                  {stats.pendingApprovals} pending approval
-                </p>
-              </CardContent>
-            </Card>
+            <SidebarGroup>
+              <SidebarGroupLabel>Content</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'products' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('products')}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Products</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'rfqs' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('rfqs')}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        <span>RFQs</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-                <p className="text-xs text-muted-foreground">
-                  Premium plans active
-                </p>
-              </CardContent>
-            </Card>
+            <SidebarGroup>
+              <SidebarGroupLabel>Reports</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button 
+                        className={`w-full justify-start ${activeTab === 'reports' ? 'bg-blue-100' : ''}`}
+                        onClick={() => setActiveTab('reports')}
+                      >
+                        <FileText className="h-4 w-4" />
+                        <span>Analytics</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalTransactions}</div>
-                <p className="text-xs text-muted-foreground">
-                  All time transactions
-                </p>
-              </CardContent>
-            </Card>
+            <SidebarGroup>
+              <SidebarGroupLabel>System</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button className="w-full justify-start">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <button className="w-full justify-start">
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
+                      </button>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  All time revenue
-                </p>
-              </CardContent>
-            </Card>
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="bg-white shadow-sm border-b px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger />
+                <h2 className="text-xl font-semibold">
+                  {activeTab === 'dashboard' && 'Dashboard Overview'}
+                  {activeTab === 'users' && 'User Management'}
+                  {activeTab === 'subscriptions' && 'Subscription Management'}
+                  {activeTab === 'transactions' && 'Transaction Management'}
+                  {activeTab === 'products' && 'Product Management'}
+                  {activeTab === 'rfqs' && 'RFQ Management'}
+                  {activeTab === 'reports' && 'Analytics & Reports'}
+                </h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button variant="outline" size="sm">
+                  <Bell className="h-4 w-4 mr-2" />
+                  Notifications
+                </Button>
+                <Avatar>
+                  <AvatarImage src="/placeholder-avatar.jpg" />
+                  <AvatarFallback>AD</AvatarFallback>
+                </Avatar>
+              </div>
+            </div>
+          </header>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.monthlyRevenue)}</div>
-                <p className="text-xs text-muted-foreground">
-                  This month
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          {/* Main Content Area */}
+          <main className="flex-1 overflow-y-auto p-6">
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Dashboard Overview</h3>
+                
+                {/* Key Metrics */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Users</p>
+                          <p className="text-2xl font-bold">{mockAnalytics.totalUsers}</p>
+                          <p className="text-sm text-green-600">{mockAnalytics.activeUsers} active</p>
+                        </div>
+                        <Users className="h-8 w-8 text-blue-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Monthly Revenue</p>
+                          <p className="text-2xl font-bold">Rs. {(mockAnalytics.monthlyRevenue / 1000000).toFixed(1)}M</p>
+                          <p className="text-sm text-green-600">+12.5%</p>
+                        </div>
+                        <DollarSign className="h-8 w-8 text-green-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Transactions</p>
+                          <p className="text-2xl font-bold">{mockAnalytics.totalTransactions}</p>
+                          <p className="text-sm text-green-600">+8.2%</p>
+                        </div>
+                        <CreditCard className="h-8 w-8 text-purple-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Commission Revenue</p>
+                          <p className="text-2xl font-bold">Rs. {(mockAnalytics.commissionRevenue / 1000).toFixed(0)}K</p>
+                          <p className="text-sm text-green-600">+15.3%</p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-orange-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="users">User Management ({users.length})</TabsTrigger>
-            <TabsTrigger value="subscriptions">Subscriptions ({subscriptions.length})</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions ({transactions.length})</TabsTrigger>
-          </TabsList>
+                {/* Recent Activity */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recent Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {mockRecentActivity.map((activity) => (
+                          <div key={activity.id} className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{activity.action}</p>
+                              <p className="text-xs text-gray-500">{activity.details}</p>
+                            </div>
+                            <div className="text-xs text-gray-500">{activity.timestamp}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
 
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>
-                  Manage user accounts and approvals
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Pending Approvals</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {mockUsers.filter(u => !u.isApproved).map((user) => (
+                          <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-gray-500">{user.email}</p>
+                              <Badge className={getRoleColor(user.roles)}>{user.roles}</Badge>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleUserApproval(user.id, true)}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleUserApproval(user.id, false)}
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold">User Management</h3>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search users..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-64"
+                      />
+                    </div>
+                    <Button variant="outline" size="sm">
+                      <Filter className="h-4 w-4 mr-2" />
+                      Filter
+                    </Button>
+                  </div>
+                </div>
+
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                            No users found
-                          </TableCell>
+                          <TableHead>User</TableHead>
+                          <TableHead>Contact</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        users.map((user) => (
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((user) => (
                           <TableRow key={user.id}>
                             <TableCell>
-                              <div>
-                                <div className="font-medium">{user.name || 'N/A'}</div>
-                                <div className="text-sm text-gray-500">{user.email}</div>
-                                {user.phone && (
-                                  <div className="text-sm text-gray-500">{user.phone}</div>
-                                )}
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{user.name}</p>
+                                  <p className="text-sm text-gray-500">{user.email}</p>
+                                </div>
                               </div>
                             </TableCell>
-                            <TableCell>{getRoleBadge(user.role)}</TableCell>
                             <TableCell>
-                              <div className="flex items-center space-x-2">
+                              <p className="text-sm">{user.phone}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getRoleColor(user.roles)}>
+                                {user.roles}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">{user.companyName || '-'}</p>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
                                 {user.isApproved ? (
-                                  <CheckCircle className="w-4 h-4 text-green-600" />
+                                  <Badge className="bg-green-100 text-green-800">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Approved
+                                  </Badge>
                                 ) : (
-                                  <Clock className="w-4 h-4 text-yellow-600" />
+                                  <Badge className="bg-yellow-100 text-yellow-800">
+                                    <Clock className="h-3 w-3 mr-1" />
+                                    Pending
+                                  </Badge>
                                 )}
-                                <span>
-                                  {user.isApproved ? 'Approved' : 'Pending'}
-                                </span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              {new Date(user.createdAt).toLocaleDateString()}
+                              <p className="text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => router.push(`/admin/users/${user.id}`)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
+                              <div className="flex gap-2">
                                 {!user.isApproved && (
                                   <>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleApproveUser(user.id)}
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleUserApproval(user.id, true)}
                                     >
-                                      <Check className="w-4 h-4 text-green-600" />
+                                      <UserCheck className="h-4 w-4" />
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRejectUser(user.id)}
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => handleUserApproval(user.id, false)}
                                     >
-                                      <X className="w-4 h-4 text-red-600" />
+                                      <UserX className="h-4 w-4" />
                                     </Button>
                                   </>
                                 )}
+                                <Button size="sm" variant="outline">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-          <TabsContent value="subscriptions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscription Management</CardTitle>
-                <CardDescription>
-                  Monitor and manage user subscriptions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subscriptions.length === 0 ? (
+            {activeTab === 'subscriptions' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Subscription Management</h3>
+                
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                            No subscriptions found
-                          </TableCell>
+                          <TableHead>User</TableHead>
+                          <TableHead>Plan</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Period</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        subscriptions.map((subscription) => (
+                      </TableHeader>
+                      <TableBody>
+                        {mockSubscriptions.map((subscription) => (
                           <TableRow key={subscription.id}>
                             <TableCell>
                               <div>
-                                <div className="font-medium">{subscription.user.name || 'N/A'}</div>
-                                <div className="text-sm text-gray-500">{subscription.user.email}</div>
+                                <p className="font-medium">{subscription.userName}</p>
+                                <p className="text-sm text-gray-500">{subscription.userEmail}</p>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -468,103 +671,190 @@ export default function AdminDashboard() {
                                 {subscription.planType}
                               </Badge>
                             </TableCell>
-                            <TableCell>{getStatusBadge(subscription.status)}</TableCell>
-                            <TableCell>{formatCurrency(subscription.amount)}</TableCell>
                             <TableCell>
-                              <div className="text-sm">
-                                <div>{new Date(subscription.startDate).toLocaleDateString()}</div>
-                                <div className="text-gray-500">to {new Date(subscription.endDate).toLocaleDateString()}</div>
+                              <p className="font-medium">Rs. {subscription.amount.toLocaleString()}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">
+                                {new Date(subscription.startDate).toLocaleDateString()} - {new Date(subscription.endDate).toLocaleDateString()}
+                              </p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(subscription.status)}>
+                                {subscription.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-          <TabsContent value="transactions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Transaction Monitoring</CardTitle>
-                <CardDescription>
-                  Track all platform transactions and revenue
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Invoice</TableHead>
-                        <TableHead>Buyer</TableHead>
-                        <TableHead>Seller</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Commission</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.length === 0 ? (
+            {activeTab === 'transactions' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Transaction Management</h3>
+                
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                            No transactions found
-                          </TableCell>
+                          <TableHead>Transaction ID</TableHead>
+                          <TableHead>Buyer</TableHead>
+                          <TableHead>Seller</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Commission</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Payment Method</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ) : (
-                        transactions.map((transaction) => (
+                      </TableHeader>
+                      <TableBody>
+                        {mockTransactions.map((transaction) => (
                           <TableRow key={transaction.id}>
-                            <TableCell className="font-mono text-sm">
-                              {transaction.invoiceNumber}
+                            <TableCell>
+                              <p className="font-medium">#{transaction.id}</p>
                             </TableCell>
                             <TableCell>
-                              <div>
-                                <div className="font-medium">{transaction.buyer.name || 'N/A'}</div>
-                                <div className="text-sm text-gray-500">{transaction.buyer.email}</div>
+                              <p className="font-medium">{transaction.buyerName}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium">{transaction.sellerName}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium">Rs. {transaction.amount.toLocaleString()}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium">Rs. {transaction.commission.toLocaleString()}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(transaction.status)}>
+                                {transaction.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">{new Date(transaction.date).toLocaleDateString()}</p>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm">{transaction.paymentMethod}</p>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button size="sm" variant="outline">
+                                  <FileText className="h-4 w-4" />
+                                </Button>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{transaction.seller.name || 'N/A'}</div>
-                                <div className="text-sm text-gray-500">{transaction.seller.email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {formatCurrency(transaction.productPrice)}
-                            </TableCell>
-                            <TableCell className="text-red-600">
-                              {formatCurrency(transaction.commissionAmount)}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                            <TableCell>
-                              {new Date(transaction.createdAt).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'reports' && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Analytics & Reports</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Revenue Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Total Revenue</span>
+                          <span className="font-medium">Rs. {mockAnalytics.monthlyRevenue.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Commission Revenue</span>
+                          <span className="font-medium">Rs. {mockAnalytics.commissionRevenue.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Total Transactions</span>
+                          <span className="font-medium">{mockAnalytics.totalTransactions}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Active Subscriptions</span>
+                          <span className="font-medium">{mockAnalytics.activeSubscriptions}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>User Statistics</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Total Users</span>
+                          <span className="font-medium">{mockAnalytics.totalUsers}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Active Users</span>
+                          <span className="font-medium">{mockAnalytics.activeUsers}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Total Sellers</span>
+                          <span className="font-medium">{mockAnalytics.totalSellers}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Total Buyers</span>
+                          <span className="font-medium">{mockAnalytics.totalBuyers}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generate Reports</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <Button variant="outline" className="h-20 flex-col">
+                        <FileText className="h-6 w-6 mb-2" />
+                        User Report
+                      </Button>
+                      <Button variant="outline" className="h-20 flex-col">
+                        <DollarSign className="h-6 w-6 mb-2" />
+                        Revenue Report
+                      </Button>
+                      <Button variant="outline" className="h-20 flex-col">
+                        <TrendingUp className="h-6 w-6 mb-2" />
+                        Analytics Report
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </main>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

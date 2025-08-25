@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
+// This is your Prisma schema file for B2B Industrial Marketplace Pakistan
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -27,16 +24,15 @@ enum SubscriptionPlan {
 
 enum SubscriptionStatus {
   ACTIVE
-  INACTIVE
   EXPIRED
+  CANCELLED
 }
 
 enum RFQStatus {
   OPEN
-  IN_NEGOTIATION
+  NEGOTIATION
   APPROVED
   CLOSED
-  CANCELLED
 }
 
 enum TransactionStatus {
@@ -44,47 +40,57 @@ enum TransactionStatus {
   PAID
   COMPLETED
   FAILED
-  REFUNDED
+}
+
+enum PlanType {
+  BASIC
+  STANDARD
+  PREMIUM
 }
 
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
   phone        String?
-  name         String?
-  passwordHash String   @map("password_hash")
-  role         UserRole @default(BUYER)
+  name         String
+  passwordHash String
+  roles        UserRole
+  companyName  String?
+  address      String?
+  city         String?
+  country      String   @default("Pakistan")
   isApproved   Boolean  @default(false)
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   // Relations
-  buyerRFQs    RFQ[]
-  sellerRFQs   RFQ[]      @relation("SellerRFQs")
-  products     Product[]
-  subscriptions Subscription[]
-  buyerTransactions Transaction[] @relation("TransactionBuyer")
-  sellerTransactions Transaction[] @relation("TransactionSeller")
-  sentMessages Chat[]     @relation("SentMessages")
-  receivedMessages Chat[] @relation("ReceivedMessages")
-  extraListings ExtraListing[]
-  adminLogs    AdminLog[]
+  subscriptions     Subscription[]
+  products          Product[]
+  rfqs              RFQ[]
+  sentChats         Chat[] @relation("SentChats")
+  receivedChats     Chat[] @relation("ReceivedChats")
+  buyerTransactions Transaction[] @relation("BuyerTransactions")
+  sellerTransactions Transaction[] @relation("SellerTransactions")
+  extraListings     ExtraListing[]
+  adminLogs         AdminLog[]
 
   @@map("users")
 }
 
 model Subscription {
-  id          String              @id @default(cuid())
+  id          String            @id @default(cuid())
   userId      String
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   planType    SubscriptionPlan
   startDate   DateTime
   endDate     DateTime
   status      SubscriptionStatus @default(ACTIVE)
   amount      Float
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
@@ -92,22 +98,25 @@ model Subscription {
 model Product {
   id             String   @id @default(cuid())
   sellerId       String
-  seller         User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   title          String
   description    String
   price          Float
   quantity       Int
-  unit           String   @default("unit")
+  unit           String   @default("piece")
   category       String
-  images         String?  // JSON string array of image URLs
+  subCategory    String?
+  images         String? // JSON array of image URLs
   isActive       Boolean  @default(true)
+  isFeatured     Boolean  @default(false)
   views          Int      @default(0)
-  planListingId  String?  @unique // Optional tracking for plan limits
+  planListingId  String?  // For tracking which subscription this listing belongs to
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   // Relations
-  transactions Transaction[]
+  seller        User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  transactions   Transaction[]
+  rfqProducts    RFQProduct[]
 
   @@map("products")
 }
@@ -115,37 +124,57 @@ model Product {
 model RFQ {
   id          String    @id @default(cuid())
   buyerId     String
-  buyer       User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
-  sellerId    String?
-  seller      User?     @relation("SellerRFQs", fields: [sellerId], references: [id])
   title       String
   description String
-  quantity    Int
-  unit        String    @default("unit")
+  category    String
   budget      Float?
+  quantity    Int
+  unit        String    @default("piece")
   deadline    DateTime?
   status      RFQStatus @default(OPEN)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   // Relations
+  buyer       User         @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   chats       Chat[]
+  products    RFQProduct[]
   transactions Transaction[]
 
   @@map("rfqs")
 }
 
+model RFQProduct {
+  id       String @id @default(cuid())
+  rfqId    String
+  productId String
+  quantity Int
+  unit     String @default("piece")
+  notes    String?
+
+  // Relations
+  rfq    RFQ     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([rfqId, productId])
+  @@map("rfq_products")
+}
+
 model Chat {
   id           String   @id @default(cuid())
   rfqId        String
-  rfq          RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
   senderId     String
-  sender       User     @relation("SentMessages", fields: [senderId], references: [id])
   receiverId   String
-  receiver     User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
-  messageText  String?
-  attachments  String?  // JSON string array of file URLs
+  message      String
+  attachments  String? // JSON array of file URLs
+  messageType  String   @default("text") // text, image, pdf, etc.
   timestamp    DateTime @default(now())
+  isRead       Boolean  @default(false)
+
+  // Relations
+  rfq      RFQ  @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  sender   User @relation("SentChats", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedChats", fields: [receiverId], references: [id], onDelete: Cascade)
 
   @@map("chats")
 }
@@ -153,58 +182,68 @@ model Chat {
 model Transaction {
   id              String           @id @default(cuid())
   rfqId           String?
-  rfq             RFQ?             @relation(fields: [rfqId], references: [id])
   productId       String?
-  product         Product?         @relation(fields: [productId], references: [id])
   buyerId         String
-  buyer           User             @relation("TransactionBuyer", fields: [buyerId], references: [id])
   sellerId        String
-  seller          User             @relation("TransactionSeller", fields: [sellerId], references: [id])
-  productPrice    Float
-  commissionAmount Float
   totalAmount     Float
+  commissionAmount Float
+  productAmount   Float
   status          TransactionStatus @default(PENDING)
   paymentDate     DateTime?
-  invoiceNumber   String           @unique
+  invoiceNumber   String?
+  invoicePdf      String?
+  notes           String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
   // Relations
-  invoice Invoice?
+  buyer    User     @relation("BuyerTransactions", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller   User     @relation("SellerTransactions", fields: [sellerId], references: [id], onDelete: Cascade)
+  rfq      RFQ?     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  product  Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  invoice  Invoice?
 
   @@map("transactions")
-}
-
-model ExtraListing {
-  id            String   @id @default(cuid())
-  sellerId      String
-  seller        User     @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  listingCount  Int
-  amountPaid    Float
-  createdAt     DateTime @default(now())
-
-  @@map("extra_listings")
 }
 
 model Invoice {
   id            String   @id @default(cuid())
   transactionId String   @unique
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   invoiceNumber String   @unique
   pdfUrl        String?
   createdAt     DateTime @default(now())
 
+  // Relations
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
   @@map("invoices")
+}
+
+model ExtraListing {
+  id           String   @id @default(cuid())
+  sellerId     String
+  listingCount Int
+  amount       Float
+  status       String   @default("active") // active, used, expired
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  seller User @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@map("extra_listings")
 }
 
 model AdminLog {
   id           String   @id @default(cuid())
   adminId      String
-  admin        User     @relation(fields: [adminId], references: [id])
   action       String
   targetUserId String?
   details      String?
   timestamp    DateTime @default(now())
+
+  // Relations
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@map("admin_logs")
 }

@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
-import { UserRole } from '@prisma/client'
-import { z } from 'zod'
-
-const signupSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  role: z.enum(['BUYER', 'SELLER', 'BOTH']),
-  plan: z.enum(['BASIC', 'STANDARD', 'PREMIUM']).optional()
-})
+import { UserRole, SubscriptionPlan } from '@prisma/client'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, phone, password, role, plan } = signupSchema.parse(body)
+    const {
+      name,
+      email,
+      phone,
+      password,
+      companyName,
+      role,
+      sellerPlan
+    } = body
+
+    // Validate required fields
+    if (!name || !email || !phone || !password || !role) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -31,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 12)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // Create user
     const user = await db.user.create({
@@ -39,49 +45,57 @@ export async function POST(request: NextRequest) {
         name,
         email,
         phone,
-        passwordHash,
-        role: role as UserRole,
-        isApproved: false // Admin approval required
+        passwordHash: hashedPassword,
+        companyName,
+        roles: role as UserRole,
+        country: 'Pakistan'
       }
     })
 
-    // If user is a seller or both, create subscription if plan is provided
-    if ((role === 'SELLER' || role === 'BOTH') && plan) {
-      const planPricing = {
-        BASIC: 0,
-        STANDARD: 5000,
-        PREMIUM: 12000
+    // If user is a seller or both, create subscription
+    if (role === 'seller' || role === 'both') {
+      const subscriptionData = {
+        BASIC: { amount: 0, duration: 365 }, // 1 year free for basic
+        STANDARD: { amount: 5000, duration: 30 }, // 1 month
+        PREMIUM: { amount: 12000, duration: 30 } // 1 month
       }
 
+      const plan = subscriptionData[sellerPlan as keyof typeof subscriptionData]
       const startDate = new Date()
       const endDate = new Date()
-      endDate.setMonth(endDate.getMonth() + 1)
+      endDate.setDate(endDate.getDate() + plan.duration)
 
       await db.subscription.create({
         data: {
           userId: user.id,
-          planType: plan,
+          planType: sellerPlan as SubscriptionPlan,
           startDate,
           endDate,
           status: 'ACTIVE',
-          amount: planPricing[plan]
+          amount: plan.amount
         }
       })
     }
 
+    // Create JWT token (simplified - in production use proper JWT library)
+    const token = Buffer.from(JSON.stringify({
+      userId: user.id,
+      email: user.email,
+      role: user.roles
+    })).toString('base64')
+
     return NextResponse.json({
-      message: 'User created successfully. Please wait for admin approval.',
-      userId: user.id
+      message: 'User created successfully',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: user.roles
+      },
+      token
     })
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation failed', details: error.errors },
-        { status: 400 }
-      )
-    }
-
     console.error('Signup error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

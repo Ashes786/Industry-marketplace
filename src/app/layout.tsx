@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import { SessionProvider } from "next-auth/react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,21 +14,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "B2B Pakistan - Industrial Marketplace",
-  description: "Pakistan's premier B2B industrial marketplace connecting buyers and sellers of raw materials, semi-finished goods, and industrial products.",
-  keywords: ["B2B Pakistan", "industrial marketplace", "raw materials", "manufacturing", "suppliers", "buyers"],
-  authors: [{ name: "B2B Pakistan Team" }],
+  title: "Z.ai Code Scaffold - AI-Powered Development",
+  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
+  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
+  authors: [{ name: "Z.ai Team" }],
   openGraph: {
-    title: "B2B Pakistan - Industrial Marketplace",
-    description: "Connect with trusted suppliers and buyers for industrial goods in Pakistan",
-    url: "https://b2bpakistan.com",
-    siteName: "B2B Pakistan",
+    title: "Z.ai Code Scaffold",
+    description: "AI-powered development with modern React stack",
+    url: "https://chat.z.ai",
+    siteName: "Z.ai",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "B2B Pakistan - Industrial Marketplace",
-    description: "Connect with trusted suppliers and buyers for industrial goods in Pakistan",
+    title: "Z.ai Code Scaffold",
+    description: "AI-powered development with modern React stack",
   },
 };
 
@@ -43,10 +42,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <SessionProvider>
-          {children}
-          <Toaster />
-        </SessionProvider>
+        {children}
+        <Toaster />
       </body>
     </html>
   );
