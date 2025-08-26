@@ -27,13 +27,31 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // TODO: Implement API call for login
-      console.log('Login data:', formData)
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      // Redirect to dashboard based on user role
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
+      }
+
+      // Store token in localStorage (in production, use HttpOnly cookies)
+      localStorage.setItem('auth_token', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // Redirect to dashboard
       window.location.href = '/dashboard'
     } catch (error) {
-      alert('Login failed. Please check your credentials.')
+      alert(error instanceof Error ? error.message : 'Login failed. Please check your credentials.')
     } finally {
       setIsLoading(false)
     }

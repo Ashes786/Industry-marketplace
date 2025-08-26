@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ProtectedRoute, useAuth } from '@/lib/auth-context'
 import { 
   Sidebar, 
   SidebarContent, 
@@ -166,6 +167,7 @@ const mockTransactions = [
 ]
 
 export default function BuyerDashboard() {
+  const { user, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('rfqs')
   const [showCreateRFQ, setShowCreateRFQ] = useState(false)
   const [selectedRFQ, setSelectedRFQ] = useState(null)
@@ -187,14 +189,15 @@ export default function BuyerDashboard() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen bg-gray-50">
+    <ProtectedRoute>
+      <SidebarProvider>
+        <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
         <Sidebar className="w-64">
           <SidebarHeader className="border-b p-4">
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-6 w-6 text-blue-600" />
-              <h1 className="text-lg font-semibold">Buyer Dashboard</h1>
+              <h1 className="text-lg font-semibold">{user?.companyName || `${user?.name}'s Dashboard`}</h1>
             </div>
           </SidebarHeader>
           <SidebarContent>
@@ -283,7 +286,7 @@ export default function BuyerDashboard() {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <button className="w-full justify-start">
+                      <button className="w-full justify-start" onClick={logout}>
                         <LogOut className="h-4 w-4" />
                         <span>Logout</span>
                       </button>
@@ -316,7 +319,7 @@ export default function BuyerDashboard() {
                 </Button>
                 <Avatar>
                   <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
               </div>
             </div>
@@ -639,6 +642,7 @@ export default function BuyerDashboard() {
           </Card>
         </div>
       )}
-    </SidebarProvider>
+        </SidebarProvider>
+      </ProtectedRoute>
   )
 }

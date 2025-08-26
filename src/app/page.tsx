@@ -210,37 +210,45 @@ export default function Home() {
     return () => clearTimeout(timeout)
   }, [])
 
-  // Testimonial navigation
+  // Testimonial navigation - Enhanced for endless scrolling
   const [currentTestimonialStart, setCurrentTestimonialStart] = useState(0)
   const [isAutoPlaying, setIsAutoPlaying] = useState(true)
+  const [direction, setDirection] = useState<'next' | 'prev'>('next')
+
+  // Create extended testimonials array for endless scrolling
+  const extendedTestimonials = [...testimonials, ...testimonials, ...testimonials]
 
   const nextTestimonialSet = () => {
-    setCurrentTestimonialStart((prev) => (prev + 3) % testimonials.length)
+    setDirection('next')
+    setCurrentTestimonialStart((prev) => (prev + 1) % testimonials.length)
   }
 
   const prevTestimonialSet = () => {
-    setCurrentTestimonialStart((prev) => (prev - 3 + testimonials.length) % testimonials.length)
+    setDirection('prev')
+    setCurrentTestimonialStart((prev) => (prev - 1 + testimonials.length) % testimonials.length)
   }
 
   const goToTestimonialSet = (startIndex: number) => {
+    setDirection(startIndex > currentTestimonialStart ? 'next' : 'prev')
     setCurrentTestimonialStart(startIndex)
   }
 
-  // Auto-play functionality
+  // Auto-play functionality with smoother transitions
   useEffect(() => {
     if (!isAutoPlaying) return
 
     const interval = setInterval(() => {
-      setCurrentTestimonialStart((prev) => (prev + 3) % testimonials.length)
-    }, 3000) // Change every 3 seconds for faster movement
+      setDirection('next')
+      setCurrentTestimonialStart((prev) => (prev + 1) % testimonials.length)
+    }, 4000) // Change every 4 seconds for smoother movement
 
     return () => clearInterval(interval)
-  }, [isAutoPlaying])
+  }, [isAutoPlaying, testimonials.length])
 
   // Pause auto-play on user interaction
   const handleUserInteraction = () => {
     setIsAutoPlaying(false)
-    setTimeout(() => setIsAutoPlaying(true), 8000) // Resume after 8 seconds
+    setTimeout(() => setIsAutoPlaying(true), 10000) // Resume after 10 seconds
   }
 
   return (
@@ -299,11 +307,11 @@ export default function Home() {
               <a href="#pricing" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">Pricing</a>
               <a href="#testimonials" className="text-gray-700 hover:text-blue-600 block px-3 py-2 text-base font-medium">Testimonials</a>
               <div className="pt-4 pb-3 border-t border-gray-200">
-                <div className="flex flex-col space-y-2 px-3">
-                  <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-blue-600 hover:bg-blue-50" asChild>
+                <div className="flex flex-row space-x-3 px-3">
+                  <Button variant="ghost" className="flex-1 justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50" asChild>
                     <a href="/login">Sign In</a>
                   </Button>
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium" asChild>
+                  <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium" asChild>
                     <a href="/signup">Get Started</a>
                   </Button>
                 </div>
@@ -542,49 +550,62 @@ export default function Home() {
           </div>
           
           <div className="relative">
-            {/* Testimonials Grid */}
+            {/* Testimonials Grid - Enhanced for endless scrolling */}
             <div className="grid md:grid-cols-3 gap-8 mb-8">
-              {testimonials.slice(currentTestimonialStart, currentTestimonialStart + 3).map((testimonial, index) => (
-                <Card 
-                  key={`${currentTestimonialStart}-${index}`} 
-                  className="hover:shadow-xl transition-all duration-300 border-0 shadow-lg bg-white overflow-hidden group"
-                >
-                  <CardContent className="p-6">
-                    {/* Profile Picture and Rating */}
-                    <div className="flex flex-col items-center mb-6">
-                      <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-gray-100 mb-4 group-hover:ring-blue-200 transition-all duration-300">
-                        <img 
-                          src={`/${testimonial.name.toLowerCase().replace(' ', '-')}.jpg`}
-                          alt={testimonial.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=3B82F6&color=fff&size=64`;
-                          }}
-                        />
-                      </div>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          {[...Array(testimonial.rating)].map((_, i) => (
-                            <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          ))}
+              {testimonials.map((testimonial, index) => {
+                // Calculate the display position with wrapping for endless effect
+                const displayIndex = (index - currentTestimonialStart + testimonials.length) % testimonials.length
+                const isVisible = displayIndex < 3
+                
+                if (!isVisible) return null
+                
+                return (
+                  <Card 
+                    key={`${currentTestimonialStart}-${index}`} 
+                    className={`
+                      hover:shadow-xl transition-all duration-500 border-0 shadow-lg bg-white overflow-hidden group
+                      ${displayIndex === 0 ? 'animate-in slide-in-from-left-5' : ''}
+                      ${displayIndex === 1 ? 'animate-in slide-in-from-bottom-5' : ''}
+                      ${displayIndex === 2 ? 'animate-in slide-in-from-right-5' : ''}
+                    `}
+                  >
+                    <CardContent className="p-6">
+                      {/* Profile Picture and Rating */}
+                      <div className="flex flex-col items-center mb-6">
+                        <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-gray-100 mb-4 group-hover:ring-blue-200 transition-all duration-300">
+                          <img 
+                            src={`/${testimonial.name.toLowerCase().replace(' ', '-')}.jpg`}
+                            alt={testimonial.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(testimonial.name)}&background=3B82F6&color=fff&size=64`;
+                            }}
+                          />
                         </div>
-                        <div className="text-xs text-gray-500 mb-2">Verified Review</div>
-                        <div className="font-semibold text-gray-900 text-lg mb-1">{testimonial.name}</div>
-                        <div className="text-sm text-gray-600 font-medium">{testimonial.role}</div>
-                        <div className="text-sm text-gray-500">{testimonial.company}</div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center mb-2">
+                            {[...Array(testimonial.rating)].map((_, i) => (
+                              <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                            ))}
+                          </div>
+                          <div className="text-xs text-gray-500 mb-2">Verified Review</div>
+                          <div className="font-semibold text-gray-900 text-lg mb-1">{testimonial.name}</div>
+                          <div className="text-sm text-gray-600 font-medium">{testimonial.role}</div>
+                          <div className="text-sm text-gray-500">{testimonial.company}</div>
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Testimonial Content */}
-                    <p className="text-gray-700 italic text-base leading-relaxed text-center">
-                      "{testimonial.content}"
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      {/* Testimonial Content */}
+                      <p className="text-gray-700 italic text-base leading-relaxed text-center">
+                        "{testimonial.content}"
+                      </p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
             
-            {/* Navigation Controls */}
+            {/* Enhanced Navigation Controls */}
             <div className="flex items-center justify-center space-x-4">
               <Button
                 variant="outline"
@@ -593,24 +614,26 @@ export default function Home() {
                   prevTestimonialSet()
                   handleUserInteraction()
                 }}
-                className="rounded-full w-12 h-12 p-0 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                className="rounded-full w-12 h-12 p-0 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               
               <div className="flex space-x-2">
-                {[0, 3].map((startIndex) => (
+                {Array.from({ length: testimonials.length }, (_, i) => (
                   <button
-                    key={startIndex}
+                    key={i}
                     onClick={() => {
-                      goToTestimonialSet(startIndex)
+                      goToTestimonialSet(i)
                       handleUserInteraction()
                     }}
-                    className={`w-3 h-3 rounded-full transition-colors duration-200 ${
-                      currentTestimonialStart === startIndex
-                        ? 'bg-blue-600'
+                    className={`
+                      w-3 h-3 rounded-full transition-all duration-200
+                      ${currentTestimonialStart === i
+                        ? 'bg-blue-600 scale-110'
                         : 'bg-gray-300 hover:bg-gray-400'
-                    }`}
+                      }
+                    `}
                   />
                 ))}
               </div>
@@ -622,7 +645,7 @@ export default function Home() {
                   nextTestimonialSet()
                   handleUserInteraction()
                 }}
-                className="rounded-full w-12 h-12 p-0 border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                className="rounded-full w-12 h-12 p-0 border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
