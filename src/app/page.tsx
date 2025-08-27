@@ -276,10 +276,10 @@ export default function Home() {
             <div className="hidden md:block">
               <div className="flex items-center space-x-4">
                 <Button variant="ghost" className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors duration-200" asChild>
-                  <a href="/login">Sign In</a>
+                  <a href="/auth/signin">Sign In</a>
                 </Button>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors duration-200" asChild>
-                  <a href="/signup">Get Started</a>
+                  <a href="/auth/signup">Get Started</a>
                 </Button>
               </div>
             </div>
@@ -309,10 +309,10 @@ export default function Home() {
               <div className="pt-4 pb-3 border-t border-gray-200">
                 <div className="flex flex-row space-x-3 px-3">
                   <Button variant="ghost" className="flex-1 justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50" asChild>
-                    <a href="/login">Sign In</a>
+                    <a href="/auth/signin">Sign In</a>
                   </Button>
                   <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium" asChild>
-                    <a href="/signup">Get Started</a>
+                    <a href="/auth/signup">Get Started</a>
                   </Button>
                 </div>
               </div>
@@ -335,7 +335,7 @@ export default function Home() {
               </p>
               <div className="flex flex-col sm:flex-row gap-6">
                 <Button size="lg" className="bg-white text-blue-700 hover:bg-blue-50 font-semibold text-lg py-4 px-8 shadow-lg hover:shadow-xl transition-all duration-300" asChild>
-                  <a href="/signup">
+                  <a href="/auth/signup">
                     Get Started Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </a>
@@ -522,7 +522,7 @@ export default function Home() {
                       variant={plan.popular ? 'default' : 'outline'}
                       asChild
                     >
-                      <a href="/signup">Get Started</a>
+                      <a href="/auth/signup">Get Started</a>
                     </Button>
                   </div>
                 </CardContent>
@@ -666,7 +666,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Button size="lg" className="bg-white text-blue-700 hover:bg-blue-50 font-semibold text-lg py-4 px-8 shadow-lg hover:shadow-xl transition-all duration-300" asChild>
-              <a href="/signup">Start Free Trial</a>
+              <a href="/auth/signup">Start Free Trial</a>
             </Button>
             <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-700 font-semibold text-lg py-4 px-8 bg-white/10 backdrop-blur-sm transition-all duration-300" asChild>
               <a href="#contact">Contact Sales</a>
@@ -688,8 +688,8 @@ export default function Home() {
             <div className="space-y-6">
               <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
               <ul className="space-y-3 text-gray-300">
-                <li><a href="/login" className="hover:text-white transition-colors duration-200">Sign In</a></li>
-                <li><a href="/signup" className="hover:text-white transition-colors duration-200">Sign Up</a></li>
+                <li><a href="/auth/signin" className="hover:text-white transition-colors duration-200">Sign In</a></li>
+                <li><a href="/auth/signup" className="hover:text-white transition-colors duration-200">Sign Up</a></li>
                 <li><a href="#features" className="hover:text-white transition-colors duration-200">Features</a></li>
                 <li><a href="#pricing" className="hover:text-white transition-colors duration-200">Pricing</a></li>
               </ul>

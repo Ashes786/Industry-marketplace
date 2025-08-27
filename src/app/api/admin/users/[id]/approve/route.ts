@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { sendEmail, generateApprovalEmail } from '@/lib/email'
 
 export async function POST(
   request: NextRequest,
@@ -37,6 +38,18 @@ export async function POST(
         details: `Approved user: ${user.email}`
       }
     })
+
+    // Send approval email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Your Account Has Been Approved - Industry Marketplace Pakistan',
+        html: generateApprovalEmail(user.name)
+      })
+    } catch (emailError) {
+      console.error('Failed to send approval email:', emailError)
+      // Don't fail the approval if email fails
+    }
 
     return NextResponse.json({ message: 'User approved successfully', user })
   } catch (error) {

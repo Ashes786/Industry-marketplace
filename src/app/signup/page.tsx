@@ -263,7 +263,7 @@ export default function AuthPage() {
 
               <div className="text-center text-sm text-gray-600">
                 Already have an account?{' '}
-                <a href="/login" className="text-blue-600 hover:underline">
+                <a href="/auth/signin" className="text-blue-600 hover:underline">
                   Sign in here
                 </a>
               </div>

@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, CheckCircle, Users, ShoppingCart } from 'lucide-react'
+import { Loader2, Eye, EyeOff, Mail, Lock, User, Phone, Building2, ShoppingCart, Users, CheckCircle } from 'lucide-react'
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -23,14 +23,14 @@ export default function SignUpPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    setSuccess('')
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
@@ -57,10 +57,7 @@ export default function SignUpPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess('Account created successfully! Please wait for admin approval.')
-        setTimeout(() => {
-          router.push('/auth/signin')
-        }, 3000)
+        router.push('/auth/success')
       } else {
         setError(data.error || 'An error occurred during signup')
       }
@@ -99,23 +96,27 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        {/* Header */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+          <div className="flex items-center justify-center mb-4">
+            <Building2 className="h-12 w-12 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
             Create Your Account
-          </h2>
-          <p className="mt-3 text-xl text-gray-500">
+          </h1>
+          <p className="mt-3 text-xl text-gray-600">
             Join Pakistan's premier B2B industrial marketplace
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Role Selection */}
-          <Card>
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Choose Your Role</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold text-gray-900">Choose Your Role</CardTitle>
+              <CardDescription className="text-gray-600">
                 Select how you want to use the platform
               </CardDescription>
             </CardHeader>
@@ -128,14 +129,14 @@ export default function SignUpPage() {
                 {Object.entries(roleDescriptions).map(([role, config]) => {
                   const Icon = config.icon
                   return (
-                    <div key={role} className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div key={role} className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors duration-200">
                       <RadioGroupItem value={role} id={role} />
                       <Label htmlFor={role} className="flex-1 cursor-pointer">
                         <div className="flex items-center space-x-3">
                           <Icon className={`w-5 h-5 ${config.color}`} />
                           <div>
-                            <div className="font-medium">{config.title}</div>
-                            <div className="text-sm text-gray-500">{config.description}</div>
+                            <div className="font-medium text-gray-900">{config.title}</div>
+                            <div className="text-sm text-gray-600">{config.description}</div>
                           </div>
                         </div>
                       </Label>
@@ -147,82 +148,128 @@ export default function SignUpPage() {
           </Card>
 
           {/* Signup Form */}
-          <Card>
+          <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-xl font-bold text-gray-900">Account Information</CardTitle>
+              <CardDescription className="text-gray-600">
                 Enter your details to create your account
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    required
-                    placeholder="Enter your full name"
-                  />
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">
+                    Full Name
+                  </Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="name"
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                      placeholder="Enter your full name"
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    required
-                    placeholder="Enter your email"
-                  />
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      required
+                      placeholder="Enter your email"
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="Enter your phone number"
-                  />
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                    Phone Number
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="Enter your phone number"
+                      className="pl-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                    placeholder="Create a password"
-                  />
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={formData.password}
+                      onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      placeholder="Create a password"
+                      className="pl-10 pr-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    required
-                    placeholder="Confirm your password"
-                  />
+                  <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      required
+                      placeholder="Confirm your password"
+                      className="pl-10 pr-10 h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 {(formData.role === 'SELLER' || formData.role === 'BOTH') && (
                   <div className="space-y-2">
-                    <Label>Subscription Plan</Label>
+                    <Label className="text-sm font-medium text-gray-700">
+                      Subscription Plan
+                    </Label>
                     <Select
                       value={formData.plan}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, plan: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                         <SelectValue placeholder="Select a plan" />
                       </SelectTrigger>
                       <SelectContent>
@@ -240,20 +287,16 @@ export default function SignUpPage() {
                 )}
 
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                {success && (
-                  <Alert className="border-green-200 bg-green-50">
-                    <AlertDescription className="text-green-800">{success}</AlertDescription>
+                  <Alert variant="destructive" className="border-red-200 bg-red-50">
+                    <AlertDescription className="text-red-800 text-sm">
+                      {error}
+                    </AlertDescription>
                   </Alert>
                 )}
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -270,7 +313,7 @@ export default function SignUpPage() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
                   Already have an account?{' '}
-                  <a href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-500">
+                  <a href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-700 transition-colors duration-200">
                     Sign in
                   </a>
                 </p>

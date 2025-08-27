@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ProtectedRoute, useAuth } from '@/lib/auth-context'
+import { ProtectedRoute, useAuth } from '@/lib/simple-auth'
 import { 
   Sidebar, 
   SidebarContent, 

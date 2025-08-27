@@ -16,7 +16,7 @@ export const authOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error('Email and password are required')
         }
 
         const user = await db.user.findUnique({
@@ -26,7 +26,7 @@ export const authOptions = {
         })
 
         if (!user || !user.passwordHash) {
-          return null
+          throw new Error('Invalid email or password')
         }
 
         if (!user.isApproved && !user.isAdmin) {
@@ -39,14 +39,14 @@ export const authOptions = {
         )
 
         if (!isPasswordValid) {
-          return null
+          throw new Error('Invalid email or password')
         }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: user.roles,
           isApproved: user.isApproved,
           isAdmin: user.isAdmin
         }

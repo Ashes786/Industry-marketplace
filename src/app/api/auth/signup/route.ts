@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
 import { UserRole, SubscriptionPlan } from '@prisma/client'
+import { sendEmail, generateWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     })
 
     // If user is a seller or both, create subscription
-    if (role === 'seller' || role === 'both') {
+    if (role === 'SELLER' || role === 'BOTH') {
       const subscriptionData = {
         BASIC: { amount: 0, duration: 365 }, // 1 year free for basic
         STANDARD: { amount: 5000, duration: 30 }, // 1 month
@@ -83,6 +84,18 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.roles
     })).toString('base64')
+
+    // Send welcome email
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Welcome to Industry Marketplace Pakistan!',
+        html: generateWelcomeEmail(user.name)
+      })
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError)
+      // Don't fail the registration if email fails
+    }
 
     return NextResponse.json({
       message: 'User created successfully',

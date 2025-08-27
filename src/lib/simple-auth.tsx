@@ -29,15 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Check for existing auth data on mount
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        localStorage.removeItem('user')
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch (error) {
+          localStorage.removeItem('user')
+        }
       }
+      setIsLoading(false)
     }
-    setIsLoading(false)
+
+    checkAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -53,13 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (!response.ok) {
-        if (data.error === 'Account pending approval') {
-          throw new Error('Your account is pending admin approval. Please wait for approval email.')
-        } else if (data.error === 'Invalid email or password') {
-          throw new Error('Invalid email or password. Please check your credentials.')
-        } else {
-          throw new Error(data.error || 'Login failed')
-        }
+        throw new Error(data.error || 'Login failed')
       }
 
       setUser(data.user)
@@ -67,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return true
     } catch (error) {
-      console.error('Login error:', error)
       throw error
     }
   }
@@ -106,7 +103,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
