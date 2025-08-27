@@ -28,14 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check for existing auth data on mount
+    // Check for existing auth data on mount (client-side only)
     const checkAuth = () => {
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser))
-        } catch (error) {
-          localStorage.removeItem('user')
+      if (typeof window !== 'undefined') {
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          try {
+            setUser(JSON.parse(storedUser))
+          } catch (error) {
+            console.error('Error parsing stored user data:', error)
+            localStorage.removeItem('user')
+          }
         }
       }
       setIsLoading(false)
@@ -61,17 +64,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setUser(data.user)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
       
       return true
     } catch (error) {
+      console.error('Login error:', error)
       throw error
     }
   }
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem('user')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user')
+    }
     router.push('/auth/signin')
   }
 
