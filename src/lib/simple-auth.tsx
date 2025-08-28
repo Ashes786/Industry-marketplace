@@ -65,9 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Add a small delay to ensure proper initialization
-    const timer = setTimeout(initializeAuth, 100)
-    return () => clearTimeout(timer)
+    initializeAuth()
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -147,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
+    console.error('Auth: ❌ useAuth must be used within an AuthProvider')
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context

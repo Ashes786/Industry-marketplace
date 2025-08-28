@@ -26,6 +26,7 @@ export default function SignInPage() {
 
     try {
       console.log('Signin: 🔐 Attempting login for:', email)
+      
       const success = await login(email, password)
       
       if (success) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ProtectedRoute, useAuth } from '@/lib/simple-auth'
+import { useAuth } from '@/lib/simple-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -40,14 +40,13 @@ function DashboardContent() {
     }, 100)
   }
 
+  // Show loading if user is not available yet
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="text-lg font-semibold mb-2">No user data available</div>
-          <Button onClick={() => window.location.reload()}>
-            Reload Page
-          </Button>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading user data...</p>
         </div>
       </div>
     )
@@ -310,8 +309,6 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <ProtectedRoute>
-      <DashboardContent />
-    </ProtectedRoute>
+    <DashboardContent />
   )
 }
