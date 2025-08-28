@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // For seller or both roles, sellerPlan is required
+    if ((role === 'SELLER' || role === 'BOTH') && !sellerPlan) {
+      return NextResponse.json(
+        { error: 'sellerPlan is required for seller accounts' },
+        { status: 400 }
+      )
+    }
+
     // Check if user already exists
     const existingUser = await db.user.findUnique({
       where: { email }

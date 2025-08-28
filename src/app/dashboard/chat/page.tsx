@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,7 +51,7 @@ interface RFQDetails {
 }
 
 export default function ChatPage() {
-  const { data: session, status } = useSession()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const rfqId = searchParams.get('rfqId')
@@ -66,12 +66,12 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !isAuthenticated) {
       router.push('/auth/signin')
       return
     }
 
-    if (!rfqId || !session) {
+    if (!rfqId || !user) {
       return
     }
 
@@ -82,7 +82,7 @@ export default function ChatPage() {
     // Join RFQ room
     newSocket.emit('join_rfq_room', {
       rfqId,
-      userId: session.user.id
+      userId: user.id
     })
 
     // Socket event listeners
@@ -97,13 +97,13 @@ export default function ChatPage() {
     })
 
     newSocket.on('user_typing', (data: { userId: string }) => {
-      if (data.userId !== session.user.id) {
+      if (data.userId !== user.id) {
         setOtherUserTyping(true)
       }
     })
 
     newSocket.on('user_stopped_typing', (data: { userId: string }) => {
-      if (data.userId !== session.user.id) {
+      if (data.userId !== user.id) {
         setOtherUserTyping(false)
       }
     })
@@ -118,7 +118,7 @@ export default function ChatPage() {
     return () => {
       newSocket.disconnect()
     }
-  }, [rfqId, session, status, router])
+  }, [rfqId, user, isAuthenticated, isLoading, router])
 
   useEffect(() => {
     scrollToBottom()
@@ -141,9 +141,9 @@ export default function ChatPage() {
   }
 
   const handleSendMessage = () => {
-    if (!message.trim() || !socket || !rfqDetails || !session) return
+    if (!message.trim() || !socket || !rfqDetails || !user) return
 
-    const receiverId = session.user.id === rfqDetails.buyer.id 
+    const receiverId = user.id === rfqDetails.buyer.id 
       ? rfqDetails.seller?.id 
       : rfqDetails.buyer.id
 
@@ -151,7 +151,7 @@ export default function ChatPage() {
 
     socket.emit('send_message', {
       rfqId,
-      senderId: session.user.id,
+      senderId: user.id,
       receiverId,
       messageText: message,
       timestamp: new Date()
@@ -162,34 +162,34 @@ export default function ChatPage() {
   }
 
   const handleTyping = () => {
-    if (!isTyping && socket && rfqDetails && session) {
+    if (!isTyping && socket && rfqDetails && user) {
       setIsTyping(true)
-      socket.emit('typing', { rfqId, userId: session.user.id })
+      socket.emit('typing', { rfqId, userId: user.id })
       
       setTimeout(() => {
         setIsTyping(false)
-        socket?.emit('stop_typing', { rfqId, userId: session.user.id })
+        socket?.emit('stop_typing', { rfqId, userId: user.id })
       }, 1000)
     }
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !socket || !rfqDetails || !session) return
+    if (!file || !socket || !rfqDetails || !user) return
 
     const reader = new FileReader()
     reader.onload = (event) => {
       const arrayBuffer = event.target?.result as ArrayBuffer
       const buffer = Buffer.from(arrayBuffer)
 
-      const receiverId = session.user.id === rfqDetails.buyer.id 
+      const receiverId = user.id === rfqDetails.buyer.id 
         ? rfqDetails.seller?.id 
         : rfqDetails.buyer.id
 
       if (receiverId) {
         socket.emit('upload_file', {
           rfqId,
-          senderId: session.user.id,
+          senderId: user.id,
           receiverId,
           file: buffer,
           fileName: file.name,
@@ -223,7 +223,7 @@ export default function ChatPage() {
     )
   }
 
-  const otherUser = session.user.id === rfqDetails.buyer.id ? rfqDetails.seller : rfqDetails.buyer
+  const otherUser = user.id === rfqDetails.buyer.id ? rfqDetails.seller : rfqDetails.buyer
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -293,7 +293,7 @@ export default function ChatPage() {
                         <p className="text-sm font-medium">{rfqDetails.buyer.name}</p>
                         <p className="text-xs text-gray-500">Buyer</p>
                       </div>
-                      {session.user.id === rfqDetails.buyer.id && (
+                      {user.id === rfqDetails.buyer.id && (
                         <Badge className="bg-blue-100 text-blue-800">You</Badge>
                       )}
                     </div>
@@ -309,7 +309,7 @@ export default function ChatPage() {
                           <p className="text-sm font-medium">{rfqDetails.seller.name}</p>
                           <p className="text-xs text-gray-500">Seller</p>
                         </div>
-                        {session.user.id === rfqDetails.seller.id && (
+                        {user.id === rfqDetails.seller.id && (
                           <Badge className="bg-green-100 text-green-800">You</Badge>
                         )}
                       </div>
@@ -358,7 +358,7 @@ export default function ChatPage() {
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.map((msg) => {
-                    const isOwnMessage = msg.senderId === session?.user.id
+                    const isOwnMessage = msg.senderId === user.id
                     return (
                       <div
                         key={msg.id}
@@ -442,5 +442,13 @@ export default function ChatPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ProtectedChatPage() {
+  return (
+    <ProtectedRoute>
+      <ChatPage />
+    </ProtectedRoute>
   )
 }

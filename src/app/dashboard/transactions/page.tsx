@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
+import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -56,7 +56,7 @@ interface TransactionResponse {
 }
 
 export default function TransactionsPage() {
-  const { data: session, status } = useSession()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
   const [buyerTransactions, setBuyerTransactions] = useState<Transaction[]>([])
   const [sellerTransactions, setSellerTransactions] = useState<Transaction[]>([])
@@ -64,15 +64,15 @@ export default function TransactionsPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!isLoading && !isAuthenticated) {
       router.push('/auth/signin')
       return
     }
 
-    if (session) {
+    if (user) {
       fetchTransactions()
     }
-  }, [session, status, router])
+  }, [user, isAuthenticated, isLoading, router])
 
   const fetchTransactions = async () => {
     try {
@@ -420,5 +420,13 @@ export default function TransactionsPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ProtectedTransactionsPage() {
+  return (
+    <ProtectedRoute>
+      <TransactionsPage />
+    </ProtectedRoute>
   )
 }

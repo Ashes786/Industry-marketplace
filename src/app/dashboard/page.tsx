@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/lib/simple-auth'
+import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -309,6 +309,8 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <DashboardContent />
+    <ProtectedRoute>
+      <DashboardContent />
+    </ProtectedRoute>
   )
 }
