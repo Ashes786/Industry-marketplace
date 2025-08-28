@@ -11,24 +11,59 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const role = session.user.role
-    const userId = session.user.id
-
-    if (role !== 'SELLER' && role !== 'BOTH') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
-
+    // Get user's current subscription and listing limits
     const subscription = await db.subscription.findFirst({
       where: {
-        userId,
-        endDate: { gte: new Date() }
+        userId: session.user.id,
+        status: 'ACTIVE'
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
-    return NextResponse.json(subscription)
+    const extraListings = await db.extraListing.findMany({
+      where: {
+        sellerId: session.user.id,
+        status: 'active'
+      }
+    })
+
+    const totalExtraListings = extraListings.reduce((sum, listing) => sum + listing.listingCount, 0)
+
+    // Calculate current listing limits
+    let listingLimit = 2 // Basic default
+    if (subscription) {
+      switch (subscription.planType) {
+        case 'STANDARD':
+          listingLimit = 15
+          break
+        case 'PREMIUM':
+          listingLimit = -1 // Unlimited
+          break
+        default:
+          listingLimit = 2
+      }
+    }
+
+    // Count active products
+    const activeProductsCount = await db.product.count({
+      where: {
+        sellerId: session.user.id,
+        isActive: true
+      }
+    })
+
+    return NextResponse.json({
+      subscription,
+      extraListings,
+      listingLimit,
+      totalExtraListings,
+      activeProductsCount,
+      canCreateMore: listingLimit === -1 || activeProductsCount < (listingLimit + totalExtraListings)
+    })
   } catch (error) {
-    console.error('Error fetching subscription:', error)
+    console.error('Error fetching subscription info:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

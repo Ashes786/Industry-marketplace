@@ -1,279 +1,353 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { 
+  ArrowLeft, 
+  Plus, 
+  Save, 
+  X,
+  Package,
+  DollarSign,
+  Calendar,
+  FileText,
+  Users
+} from 'lucide-react'
+import Link from 'next/link'
 
-export default function CreateRFQPage() {
+interface CreateRFQProps {
+  user: any
+}
+
+export default function CreateRFQPage({ user }: CreateRFQProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    quantity: '',
-    unit: 'unit',
     budget: '',
+    quantity: '',
+    unit: 'piece',
     deadline: ''
   })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const router = useRouter()
+
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+
+  const categories = [
+    'Construction Materials',
+    'Industrial Machinery',
+    'Electrical Equipment',
+    'Chemicals',
+    'Textiles',
+    'Steel & Metal',
+    'Plastics',
+    'Packaging',
+    'Automotive Parts',
+    'Other'
+  ]
+
+  const units = [
+    'piece', 'kg', 'ton', 'meter', 'liter', 'box', 'bag', 'set'
+  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setSuccess('')
+    setLoading(true)
 
     try {
       const response = await fetch('/api/rfqs', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          quantity: parseInt(formData.quantity),
-          unit: formData.unit,
+          ...formData,
           budget: formData.budget ? parseFloat(formData.budget) : null,
-          deadline: formData.deadline ? new Date(formData.deadline) : null
-        })
+          quantity: parseInt(formData.quantity),
+          deadline: formData.deadline || null
+        }),
       })
 
-      const data = await response.json()
-
       if (response.ok) {
-        setSuccess('RFQ created successfully!')
-        setTimeout(() => {
-          router.push('/dashboard')
-        }, 2000)
+        setSuccess(true)
       } else {
-        setError(data.error || 'An error occurred while creating RFQ')
+        throw new Error('Failed to create RFQ')
       }
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      console.error('Error creating RFQ:', error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const categories = [
-    'Steel Products',
-    'Copper Products',
-    'Aluminum Products',
-    'Industrial Tools',
-    'Construction Materials',
-    'Electrical Components',
-    'Machinery Parts',
-    'Chemicals',
-    'Packaging Materials',
-    'Other'
-  ]
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
 
-  const units = [
-    'unit',
-    'kg',
-    'ton',
-    'meter',
-    'piece',
-    'box',
-    'roll',
-    'sheet',
-    'liter',
-    'gallon'
-  ]
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl">RFQ Created Successfully!</CardTitle>
+            <CardDescription>
+              Your request for quotation has been posted and sellers can now view and respond to it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4">
+              <Link href="/dashboard/rfqs" className="flex-1">
+                <Button className="w-full">View My RFQs</Button>
+              </Link>
+              <Link href="/dashboard" className="flex-1">
+                <Button variant="outline" className="w-full">Back to Dashboard</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Create New RFQ</h1>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-xl font-semibold">Create New RFQ</h1>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Request for Quotation</CardTitle>
-            <CardDescription>
-              Post your requirements and receive competitive quotes from verified suppliers
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">RFQ Title *</Label>
-                <Input
-                  id="title"
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                  placeholder="e.g., Industrial Steel Pipes Required"
-                />
-              </div>
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Form */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  RFQ Details
+                </CardTitle>
+                <CardDescription>
+                  Provide detailed information about what you're looking for to help sellers understand your requirements.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">RFQ Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Industrial Steel Pipes Required"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe your requirements in detail including specifications, quality standards, delivery requirements, etc."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      rows={4}
+                      required
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  required
-                  placeholder="Describe your requirements in detail including specifications, quality standards, delivery requirements, etc."
-                  rows={4}
-                />
-              </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                    required
-                    placeholder="100"
-                    min="1"
-                  />
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="quantity"
+                          type="number"
+                          placeholder="100"
+                          value={formData.quantity}
+                          onChange={(e) => handleInputChange('quantity', e.target.value)}
+                          required
+                        />
+                        <Select value={formData.unit} onValueChange={(value) => handleInputChange('unit', value)}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {units.map((unit) => (
+                              <SelectItem key={unit} value={unit}>
+                                {unit}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="budget">Budget (Optional)</Label>
+                      <Input
+                        id="budget"
+                        type="number"
+                        placeholder="50000"
+                        value={formData.budget}
+                        onChange={(e) => handleInputChange('budget', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="deadline">Deadline (Optional)</Label>
+                      <Input
+                        id="deadline"
+                        type="date"
+                        value={formData.deadline}
+                        onChange={(e) => handleInputChange('deadline', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-6">
+                    <Button type="submit" className="flex-1" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Create RFQ
+                        </>
+                      )}
+                    </Button>
+                    <Link href="/dashboard">
+                      <Button type="button" variant="outline">
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </Link>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tips */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tips for Better RFQs</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Be Specific</p>
+                    <p className="text-xs text-gray-600">Include detailed specifications and requirements.</p>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit *</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {units.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Set Clear Timeline</p>
+                    <p className="text-xs text-gray-600">Specify delivery deadlines and project timeline.</p>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Budget (PKR)</Label>
-                  <Input
-                    id="budget"
-                    type="number"
-                    value={formData.budget}
-                    onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                    placeholder="50000"
-                    min="0"
-                  />
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Mention Budget</p>
+                    <p className="text-xs text-gray-600">Help sellers understand your price expectations.</p>
+                  </div>
                 </div>
-              </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Quality Standards</p>
+                    <p className="text-xs text-gray-600">Specify any quality certifications required.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Deadline (Optional)</Label>
-                <Input
-                  id="deadline"
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Tips for a Great RFQ</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Be specific about product specifications and quality requirements</li>
-                  <li>• Include delivery location and timeline expectations</li>
-                  <li>• Mention any certifications or standards required</li>
-                  <li>• Set a realistic budget to attract quality suppliers</li>
-                </ul>
-              </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {success && (
-                <Alert className="border-green-200 bg-green-50">
-                  <AlertDescription className="text-green-800">{success}</AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating RFQ...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create RFQ
-                    </>
-                  )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">What Happens Next?</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <Users className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Sellers View RFQ</p>
+                    <p className="text-xs text-gray-600">Verified sellers will see your request</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <Package className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Receive Quotes</p>
+                    <p className="text-xs text-gray-600">Get competitive quotes from suppliers</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <DollarSign className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">Negotiate & Finalize</p>
+                    <p className="text-xs text-gray-600">Chat with sellers and finalize deals</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

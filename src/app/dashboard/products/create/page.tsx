@@ -1,347 +1,460 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Plus, Upload, X } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Plus, 
+  Save, 
+  X,
+  Package,
+  DollarSign,
+  Image,
+  AlertTriangle,
+  Upload,
+  Star,
+  Crown
+} from 'lucide-react'
+import Link from 'next/link'
 
-export default function CreateProductPage() {
+interface CreateProductProps {
+  user: any
+}
+
+interface SubscriptionInfo {
+  subscription?: {
+    planType: 'BASIC' | 'STANDARD' | 'PREMIUM'
+    status: string
+  }
+  listingLimit: number
+  totalExtraListings: number
+  activeProductsCount: number
+  canCreateMore: boolean
+}
+
+export default function CreateProductPage({ user }: CreateProductProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    category: '',
     price: '',
     quantity: '',
-    unit: 'unit',
-    images: [] as File[]
+    unit: 'piece',
+    category: '',
+    subCategory: '',
+    images: ''
   })
-  const [isLoading, setIsLoading] = useState(false)
+
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const router = useRouter()
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...files].slice(0, 5) // Limit to 5 images
-    }))
-  }
-
-  const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      // Upload images first
-      const imageUrls = []
-      for (const image of formData.images) {
-        const formData = new FormData()
-        formData.append('file', image)
-        
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (uploadResponse.ok) {
-          const uploadData = await uploadResponse.json()
-          imageUrls.push(uploadData.url)
-        }
-      }
-
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          category: formData.category,
-          price: parseFloat(formData.price),
-          quantity: parseInt(formData.quantity),
-          unit: formData.unit,
-          images: imageUrls
-        })
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        setSuccess('Product created successfully!')
-        setTimeout(() => {
-          router.push('/dashboard')
-        }, 2000)
-      } else {
-        setError(data.error || 'An error occurred while creating product')
-      }
-    } catch (error) {
-      setError('An error occurred. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const categories = [
-    'Steel Products',
-    'Copper Products',
-    'Aluminum Products',
-    'Industrial Tools',
     'Construction Materials',
-    'Electrical Components',
-    'Machinery Parts',
+    'Industrial Machinery',
+    'Electrical Equipment',
     'Chemicals',
-    'Packaging Materials',
+    'Textiles',
+    'Steel & Metal',
+    'Plastics',
+    'Packaging',
+    'Automotive Parts',
     'Other'
   ]
 
   const units = [
-    'unit',
-    'kg',
-    'ton',
-    'meter',
-    'piece',
-    'box',
-    'roll',
-    'sheet',
-    'liter',
-    'gallon'
+    'piece', 'kg', 'ton', 'meter', 'liter', 'box', 'bag', 'set'
   ]
+
+  useEffect(() => {
+    fetchSubscriptionInfo()
+  }, [])
+
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const response = await fetch('/api/subscription')
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionInfo(data)
+      }
+    } catch (error) {
+      console.error('Error fetching subscription info:', error)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        setSuccess(true)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to create product')
+      }
+    } catch (error) {
+      console.error('Error creating product:', error)
+      setError('Failed to create product')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const getPlanDetails = (planType: string) => {
+    switch (planType) {
+      case 'BASIC':
+        return { name: 'Basic', listings: 2, color: 'bg-gray-100 text-gray-800' }
+      case 'STANDARD':
+        return { name: 'Standard', listings: 15, color: 'bg-blue-100 text-blue-800' }
+      case 'PREMIUM':
+        return { name: 'Premium', listings: -1, color: 'bg-purple-100 text-purple-800' }
+      default:
+        return { name: 'Basic', listings: 2, color: 'bg-gray-100 text-gray-800' }
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package className="h-8 w-8 text-green-600" />
+            </div>
+            <CardTitle className="text-2xl">Product Created Successfully!</CardTitle>
+            <CardDescription>
+              Your product has been listed and is now visible to potential buyers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4">
+              <Link href="/dashboard/products" className="flex-1">
+                <Button className="w-full">View My Products</Button>
+              </Link>
+              <Link href="/dashboard" className="flex-1">
+                <Button variant="outline" className="w-full">Back to Dashboard</Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!subscriptionInfo) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading subscription information...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const { subscription, listingLimit, totalExtraListings, activeProductsCount, canCreateMore } = subscriptionInfo
+  const currentPlan = subscription ? getPlanDetails(subscription.planType) : getPlanDetails('BASIC')
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Create New Product</h1>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-xl font-semibold">Create New Product</h1>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Add New Product</CardTitle>
-            <CardDescription>
-              List your products to reach potential buyers across Pakistan
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Product Title *</Label>
-                <Input
-                  id="title"
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                  placeholder="e.g., Premium Steel Rods"
-                />
-              </div>
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Subscription Info */}
+        {!canCreateMore && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              You've reached your listing limit. Your current plan allows {listingLimit} listings 
+              {totalExtraListings > 0 && ` + ${totalExtraListings} extra listings`}. 
+              <Link href="/dashboard/subscription" className="underline ml-1">
+                Upgrade your subscription or purchase extra listings.
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  required
-                  placeholder="Describe your product in detail including specifications, features, and applications"
-                  rows={4}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price (PKR) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                    required
-                    placeholder="500"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">Available Quantity *</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                    required
-                    placeholder="1000"
-                    min="1"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="unit">Unit *</Label>
-                  <Select
-                    value={formData.unit}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, unit: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {units.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Product Images</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-sm text-gray-600">
-                      Click to upload images or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      PNG, JPG, GIF up to 5MB each (max 5 images)
-                    </p>
-                  </label>
-                </div>
-
-                {formData.images.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                    {formData.images.map((image, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={URL.createObjectURL(image)}
-                          alt={`Product image ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Form */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Product Details
+                </CardTitle>
+                <CardDescription>
+                  Provide detailed information about your product to attract potential buyers.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Product Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="e.g., Industrial Steel Pipes - Grade A"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      required
+                    />
                   </div>
-                )}
-              </div>
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <h4 className="font-medium text-green-900 mb-2">Product Listing Tips</h4>
-                <ul className="text-sm text-green-800 space-y-1">
-                  <li>• Use high-quality images to showcase your product</li>
-                  <li>• Provide detailed specifications and dimensions</li>
-                  <li>• Include minimum order quantity if applicable</li>
-                  <li>• Mention delivery time and payment terms</li>
-                  <li>• Highlight unique selling points and certifications</li>
-                </ul>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description *</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe your product in detail including specifications, quality, applications, etc."
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      rows={4}
+                      required
+                    />
+                  </div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              {success && (
-                <Alert className="border-green-200 bg-green-50">
-                  <AlertDescription className="text-green-800">{success}</AlertDescription>
-                </Alert>
-              )}
+                    <div className="space-y-2">
+                      <Label htmlFor="subCategory">Sub Category (Optional)</Label>
+                      <Input
+                        id="subCategory"
+                        placeholder="e.g., Steel Pipes"
+                        value={formData.subCategory}
+                        onChange={(e) => handleInputChange('subCategory', e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating Product...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Product
-                    </>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price per Unit (Rs.) *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        placeholder="1000"
+                        value={formData.price}
+                        onChange={(e) => handleInputChange('price', e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Available Quantity *</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="quantity"
+                          type="number"
+                          placeholder="100"
+                          value={formData.quantity}
+                          onChange={(e) => handleInputChange('quantity', e.target.value)}
+                          required
+                        />
+                        <Select value={formData.unit} onValueChange={(value) => handleInputChange('unit', value)}>
+                          <SelectTrigger className="w-24">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {units.map((unit) => (
+                              <SelectItem key={unit} value={unit}>
+                                {unit}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="images">Product Images (Optional)</Label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">Click to upload images or drag and drop</p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <Alert className="border-red-200 bg-red-50">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <AlertDescription className="text-red-800">{error}</AlertDescription>
+                    </Alert>
                   )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+
+                  <div className="flex gap-4 pt-6">
+                    <Button type="submit" className="flex-1" disabled={loading || !canCreateMore}>
+                      {loading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Create Product
+                        </>
+                      )}
+                    </Button>
+                    <Link href="/dashboard">
+                      <Button type="button" variant="outline">
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </Link>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Subscription Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="h-5 w-5" />
+                  Subscription Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Badge className={currentPlan.color}>{currentPlan.name}</Badge>
+                  {subscription?.status === 'ACTIVE' && (
+                    <Badge className="bg-green-100 text-green-800">Active</Badge>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Listing Limit</span>
+                    <span className="font-medium">
+                      {listingLimit === -1 ? 'Unlimited' : listingLimit}
+                    </span>
+                  </div>
+                  {totalExtraListings > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>Extra Listings</span>
+                      <span className="font-medium">+ {totalExtraListings}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span>Used</span>
+                    <span className="font-medium">{activeProductsCount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Available</span>
+                    <span className={canCreateMore ? 'text-green-600' : 'text-red-600'}>
+                      {listingLimit === -1 ? 'Unlimited' : Math.max(0, (listingLimit + totalExtraListings) - activeProductsCount)}
+                    </span>
+                  </div>
+                </div>
+
+                {!canCreateMore && (
+                  <Link href="/dashboard/subscription">
+                    <Button className="w-full" size="sm">
+                      <Star className="h-4 w-4 mr-2" />
+                      Upgrade Plan
+                    </Button>
+                  </Link>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Tips */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Tips for Better Listings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Clear Title</p>
+                    <p className="text-xs text-gray-600">Include key details like size, grade, or type.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Detailed Description</p>
+                    <p className="text-xs text-gray-600">Mention specifications, quality, and uses.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Competitive Pricing</p>
+                    <p className="text-xs text-gray-600">Research market rates for similar products.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                    <p className="font-medium text-sm">Quality Images</p>
+                    <p className="text-xs text-gray-600">Show actual product photos, not stock images.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

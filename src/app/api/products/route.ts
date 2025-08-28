@@ -11,56 +11,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const role = session.user.role
-    const userId = session.user.id
-    const category = searchParams.get('category')
-    const search = searchParams.get('search')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '12')
-
-    let where: any = { isActive: true }
-
-    if (role === 'SELLER' || role === 'BOTH') {
-      // Sellers can only see their own products
-      where.sellerId = userId
-    }
-
-    if (category) {
-      where.category = category
-    }
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ]
-    }
-
-    const [products, total] = await Promise.all([
-      db.product.findMany({
-        where,
-        include: {
-          seller: {
-            select: { id: true, name: true, email: true }
+    const products = await db.product.findMany({
+      where: {
+        isActive: true
+      },
+      include: {
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            companyName: true,
+            isApproved: true
           }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit
-      }),
-      db.product.count({ where })
-    ])
-
-    return NextResponse.json({
-      products,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit)
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
+
+    return NextResponse.json(products)
   } catch (error) {
     console.error('Error fetching products:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -75,64 +46,92 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const role = session.user.role
-    const userId = session.user.id
-
-    if (role !== 'SELLER' && role !== 'BOTH') {
+    if (session.user.role !== 'SELLER' && session.user.role !== 'BOTH') {
       return NextResponse.json({ error: 'Only sellers can create products' }, { status: 403 })
     }
 
     // Check subscription limits
     const subscription = await db.subscription.findFirst({
       where: {
-        userId,
-        status: 'ACTIVE',
-        endDate: { gte: new Date() }
+        userId: session.user.id,
+        status: 'ACTIVE'
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: {
+        createdAt: 'desc'
+      }
     })
 
-    if (!subscription) {
-      return NextResponse.json({ error: 'Active subscription required' }, { status: 403 })
-    }
-
-    const currentProductCount = await db.product.count({
-      where: { sellerId: userId, isActive: true }
+    const extraListings = await db.extraListing.findMany({
+      where: {
+        sellerId: session.user.id,
+        status: 'active'
+      }
     })
 
-    const planLimits = {
-      BASIC: 2,
-      STANDARD: 20,
-      PREMIUM: Infinity
+    const totalExtraListings = extraListings.reduce((sum, listing) => sum + listing.listingCount, 0)
+
+    // Calculate listing limit
+    let listingLimit = 2 // Basic default
+    if (subscription) {
+      switch (subscription.planType) {
+        case 'STANDARD':
+          listingLimit = 15
+          break
+        case 'PREMIUM':
+          listingLimit = -1 // Unlimited
+          break
+        default:
+          listingLimit = 2
+      }
     }
 
-    if (currentProductCount >= planLimits[subscription.planType]) {
+    // Count active products
+    const activeProductsCount = await db.product.count({
+      where: {
+        sellerId: session.user.id,
+        isActive: true
+      }
+    })
+
+    // Check if user can create more products
+    if (listingLimit !== -1 && activeProductsCount >= (listingLimit + totalExtraListings)) {
       return NextResponse.json({ 
-        error: `Product limit reached. Your ${subscription.planType} plan allows ${planLimits[subscription.planType]} listings.` 
+        error: 'Listing limit reached. Please upgrade your subscription or purchase extra listings.',
+        currentCount: activeProductsCount,
+        limit: listingLimit + totalExtraListings
       }, { status: 403 })
     }
 
     const body = await request.json()
-    const { title, description, category, price, quantity, unit, images } = body
+    const { title, description, price, quantity, unit, category, subCategory, images } = body
 
-    if (!title || !description || !category || !price || !quantity || !unit) {
+    if (!title || !description || !price || !quantity || !unit || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const product = await db.product.create({
       data: {
-        sellerId: userId,
+        sellerId: session.user.id,
         title,
         description,
-        category,
         price: parseFloat(price),
         quantity: parseInt(quantity),
         unit,
-        images: images ? JSON.stringify(images) : null
+        category,
+        subCategory,
+        images: images || null,
+        isActive: true,
+        isFeatured: false,
+        views: 0
       },
       include: {
         seller: {
-          select: { id: true, name: true, email: true }
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            companyName: true
+          }
         }
       }
     })

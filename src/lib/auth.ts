@@ -29,7 +29,7 @@ export const authOptions = {
           throw new Error('Invalid email or password')
         }
 
-        if (!user.isApproved && !user.isAdmin) {
+        if (!user.isApproved && user.roles !== 'ADMIN') {
           throw new Error('Account pending approval')
         }
 
@@ -47,8 +47,7 @@ export const authOptions = {
           email: user.email,
           name: user.name,
           role: user.roles,
-          isApproved: user.isApproved,
-          isAdmin: user.isAdmin
+          isApproved: user.isApproved
         }
       }
     })
@@ -61,7 +60,6 @@ export const authOptions = {
       if (user) {
         token.role = user.role
         token.isApproved = user.isApproved
-        token.isAdmin = user.isAdmin
       }
       return token
     },
@@ -70,7 +68,6 @@ export const authOptions = {
         session.user.id = token.sub
         session.user.role = token.role
         session.user.isApproved = token.isApproved
-        session.user.isAdmin = token.isAdmin
       }
       return session
     }

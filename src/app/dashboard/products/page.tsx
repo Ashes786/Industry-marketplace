@@ -1,315 +1,331 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
-  Package, 
-  Plus, 
+  ArrowLeft, 
   Search, 
-  Filter, 
-  Eye, 
-  Edit,
-  Trash2,
-  Star,
+  Plus, 
+  Edit, 
+  Eye,
+  ToggleLeft,
+  ToggleRight,
+  Package,
   TrendingUp,
-  DollarSign,
+  Users,
+  Star,
+  MapPin,
   Calendar,
-  Settings,
-  AlertCircle
+  DollarSign
 } from 'lucide-react'
 import Link from 'next/link'
 
-function ProductsContent() {
-  const { user, subscription } = useAuth()
+interface MyProductsProps {
+  user: any
+}
+
+interface Product {
+  id: string
+  title: string
+  description: string
+  price: number
+  quantity: number
+  unit: string
+  category: string
+  subCategory?: string
+  images?: string
+  isActive: boolean
+  isFeatured: boolean
+  views: number
+  createdAt: string
+  seller: {
+    id: string
+    name: string
+    email: string
+    companyName: string
+    isApproved: boolean
+  }
+  _count?: {
+    transactions: number
+  }
+}
+
+interface SubscriptionInfo {
+  listingLimit: number
+  totalExtraListings: number
+  activeProductsCount: number
+  canCreateMore: boolean
+}
+
+export default function MyProductsPage({ user }: MyProductsProps) {
+  const [products, setProducts] = useState<Product[]>([])
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [products, setProducts] = useState([])
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    setProducts([
-      {
-        id: '1',
-        title: 'Industrial Steel Pipes',
-        description: 'High-quality steel pipes for construction and industrial use',
-        price: 45000,
-        category: 'Construction Materials',
-        views: 245,
-        isActive: true,
-        isFeatured: false,
-        createdAt: '2024-01-20',
-        inquiries: 12
-      },
-      {
-        id: '2',
-        title: 'Electrical Motors',
-        description: 'Industrial grade electrical motors for various applications',
-        price: 25000,
-        category: 'Electrical',
-        views: 189,
-        isActive: true,
-        isFeatured: true,
-        createdAt: '2024-01-18',
-        inquiries: 8
-      },
-      {
-        id: '3',
-        title: 'Cement Bags (50kg)',
-        description: 'High-quality cement for construction projects',
-        price: 650,
-        category: 'Construction Materials',
-        views: 567,
-        isActive: true,
-        isFeatured: false,
-        createdAt: '2024-01-15',
-        inquiries: 25
-      },
-      {
-        id: '4',
-        title: 'Industrial Pumps',
-        description: 'Heavy-duty pumps for industrial applications',
-        price: 85000,
-        category: 'Machinery',
-        views: 134,
-        isActive: false,
-        isFeatured: false,
-        createdAt: '2024-01-10',
-        inquiries: 3
-      }
-    ])
+    fetchProducts()
+    fetchSubscriptionInfo()
   }, [])
 
-  const getPlanLimits = (planType: string) => {
-    switch (planType) {
-      case 'BASIC': return 10
-      case 'STANDARD': return 50
-      case 'PREMIUM': return 200
-      default: return 10
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/products/my')
+      if (response.ok) {
+        const data = await response.json()
+        setProducts(data)
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const planLimits = getPlanLimits(subscription?.planType || 'BASIC')
-  const activeProducts = products.filter((p: any) => p.isActive).length
-  const usagePercentage = (activeProducts / planLimits) * 100
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const response = await fetch('/api/subscription')
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionInfo({
+          listingLimit: data.listingLimit,
+          totalExtraListings: data.totalExtraListings,
+          activeProductsCount: data.activeProductsCount,
+          canCreateMore: data.canCreateMore
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching subscription info:', error)
+    }
+  }
 
-  const categories = ['all', 'Construction Materials', 'Electrical', 'Machinery', 'Textile', 'Chemicals']
+  const toggleProductStatus = async (productId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/products/${productId}/toggle`, {
+        method: 'PATCH'
+      })
 
-  const filteredProducts = products.filter((product: any) => {
-    const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && product.isActive) ||
-                         (statusFilter === 'inactive' && !product.isActive)
-    return matchesSearch && matchesStatus
-  })
+      if (response.ok) {
+        fetchProducts()
+        fetchSubscriptionInfo()
+      }
+    } catch (error) {
+      console.error('Error toggling product status:', error)
+    }
+  }
+
+  const filteredProducts = products.filter(product =>
+    product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.category.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your products...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Products</h1>
-          <p className="text-gray-600">Manage your product listings</p>
-        </div>
-        <Link href="/dashboard/products/create">
-          <Button className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Product
-          </Button>
-        </Link>
-      </div>
-
-      {/* Usage Stats */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Subscription Usage
-          </CardTitle>
-          <CardDescription>Your current plan and product listing usage</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-lg font-bold text-blue-600">{subscription?.planType || 'BASIC'}</div>
-              <div className="text-sm text-gray-600">Current Plan</div>
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-xl font-semibold">My Products</h1>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">{activeProducts}/{planLimits}</div>
-              <div className="text-sm text-gray-600">Products Used</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-green-600">
-                {subscription?.status === 'ACTIVE' ? 'Active' : 'Expired'}
-              </div>
-              <div className="text-sm text-gray-600">Status</div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Product Listing Usage</span>
-              <span>{usagePercentage.toFixed(0)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full ${
-                  usagePercentage > 80 ? 'bg-red-500' : usagePercentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${usagePercentage}%` }}
-              ></div>
-            </div>
-            {usagePercentage > 80 && (
-              <div className="mt-2 text-sm text-yellow-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                Approaching product limit. Consider upgrading your plan.
-              </div>
-            )}
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Link href="/dashboard/subscription">
-              <Button variant="outline" size="sm">
-                <Settings className="h-3 w-3 mr-1" />
-                Manage Subscription
-              </Button>
-            </Link>
-            <Link href="/dashboard/subscription">
-              <Button size="sm">
-                <Plus className="h-3 w-3 mr-1" />
-                Buy Extra Listings
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Search and Filters */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Products</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Products Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProducts.map((product: any) => (
-          <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <Package className="h-16 w-16 text-gray-400" />
-            </div>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CardTitle className="text-lg">{product.title}</CardTitle>
-                    {product.isFeatured && (
-                      <Badge className="bg-yellow-100 text-yellow-800">
-                        Featured
-                      </Badge>
-                    )}
-                  </div>
-                  <CardDescription className="mt-1">{product.description}</CardDescription>
-                </div>
-                <Badge className={product.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                  {product.isActive ? 'Active' : 'Inactive'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-green-600">Rs. {product.price.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {product.views} views
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Package className="h-3 w-3" />
-                    {product.inquiries} inquiries
-                  </span>
-                </div>
-                
-                <div className="text-sm text-gray-600">
-                  Category: {product.category}
-                </div>
-                
-                <div className="text-sm text-gray-500">
-                  Added: {product.createdAt}
-                </div>
-                
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">
-                    <Eye className="h-3 w-3 mr-1" />
-                    View
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Trash2 className="h-3 w-3 mr-1" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredProducts.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 mb-4">Create your first product listing</p>
             <Link href="/dashboard/products/create">
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Product
               </Button>
             </Link>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )
-}
+          </div>
+        </div>
+      </header>
 
-export default function ProductsPage() {
-  return (
-    <ProtectedRoute>
-      <ProductsContent />
-    </ProtectedRoute>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Subscription Info */}
+        {subscriptionInfo && (
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <div className="grid md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {subscriptionInfo.listingLimit === -1 ? 'Unlimited' : subscriptionInfo.listingLimit}
+                  </div>
+                  <div className="text-sm text-gray-600">Listing Limit</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">{subscriptionInfo.activeProductsCount}</div>
+                  <div className="text-sm text-gray-600">Active Products</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">{subscriptionInfo.totalExtraListings}</div>
+                  <div className="text-sm text-gray-600">Extra Listings</div>
+                </div>
+                <div className="text-center">
+                  <div className={`text-2xl font-bold ${subscriptionInfo.canCreateMore ? 'text-green-600' : 'text-red-600'}`}>
+                    {subscriptionInfo.listingLimit === -1 ? 'Unlimited' : Math.max(0, (subscriptionInfo.listingLimit + subscriptionInfo.totalExtraListings) - subscriptionInfo.activeProductsCount)}
+                  </div>
+                  <div className="text-sm text-gray-600">Available Slots</div>
+                </div>
+              </div>
+              {!subscriptionInfo.canCreateMore && (
+                <div className="mt-4 text-center">
+                  <Link href="/dashboard/subscription">
+                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                      Upgrade Plan or Buy Extra Listings
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search your products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Products Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProducts.map((product) => (
+            <Card key={product.id} className="hover:shadow-lg transition-shadow duration-200">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg line-clamp-1">{product.title}</CardTitle>
+                    <CardDescription className="text-sm">{product.category}</CardDescription>
+                  </div>
+                  <div className="flex gap-1">
+                    {product.isFeatured && (
+                      <Badge className="bg-yellow-100 text-yellow-800">Featured</Badge>
+                    )}
+                    <Badge className={product.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                      {product.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Product Details */}
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-2xl font-bold text-blue-600">Rs. {product.price.toLocaleString()}</span>
+                      <span className="text-sm text-gray-500"> / {product.unit}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">Available</p>
+                      <p className="font-medium">{product.quantity} {product.unit}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-gray-400" />
+                    <span>{product.views} views</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-gray-400" />
+                    <span>{product._count?.transactions || 0} sales</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleProductStatus(product.id, product.isActive)}
+                  >
+                    {product.isActive ? (
+                      <>
+                        <ToggleLeft className="h-4 w-4" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <ToggleRight className="h-4 w-4" />
+                        Activate
+                      </>
+                    )}
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Created Date */}
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Calendar className="h-3 w-3" />
+                  <span>Created {new Date(product.createdAt).toLocaleDateString()}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-12">
+            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm ? 'Try adjusting your search terms.' : 'Start by creating your first product listing.'}
+            </p>
+            <div className="flex gap-4 justify-center">
+              {searchTerm && (
+                <Button onClick={() => setSearchTerm('')}>
+                  Clear Search
+                </Button>
+              )}
+              <Link href="/dashboard/products/create">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Product
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   )
 }

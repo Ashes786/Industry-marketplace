@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { RFQStatus } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,33 +11,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const role = session.user.role
-    const userId = session.user.id
-
-    let rfqs
-
-    if (role === 'BUYER' || role === 'BOTH') {
-      // Get RFQs where user is buyer
-      rfqs = await db.rFQ.findMany({
-        where: { buyerId: userId },
-        include: {
-          buyer: {
-            select: { id: true, name: true, email: true }
-          },
-          seller: {
-            select: { id: true, name: true, email: true }
-          },
-          chats: {
-            orderBy: { timestamp: 'desc' },
-            take: 1
+    const rfqs = await db.rFQ.findMany({
+      where: {
+        buyerId: session.user.id
+      },
+      include: {
+        buyer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            companyName: true
           }
         },
-        orderBy: { createdAt: 'desc' }
-      })
-    } else {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
+        _count: {
+          select: {
+            chats: true,
+            products: true,
+            transactions: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
 
     return NextResponse.json(rfqs)
   } catch (error) {
@@ -55,15 +52,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const role = session.user.role
-    const userId = session.user.id
-
-    if (role !== 'BUYER' && role !== 'BOTH') {
+    if (session.user.role !== 'BUYER' && session.user.role !== 'BOTH') {
       return NextResponse.json({ error: 'Only buyers can create RFQs' }, { status: 403 })
     }
 
     const body = await request.json()
-    const { title, description, category, quantity, unit, budget, deadline } = body
+    const { title, description, category, budget, quantity, unit, deadline } = body
 
     if (!title || !description || !category || !quantity || !unit) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -71,19 +65,24 @@ export async function POST(request: NextRequest) {
 
     const rfq = await db.rFQ.create({
       data: {
-        buyerId: userId,
+        buyerId: session.user.id,
         title,
         description,
         category,
+        budget: budget ? parseFloat(budget) : null,
         quantity: parseInt(quantity),
         unit,
-        budget: budget ? parseFloat(budget) : null,
         deadline: deadline ? new Date(deadline) : null,
-        status: RFQStatus.OPEN
+        status: 'OPEN'
       },
       include: {
         buyer: {
-          select: { id: true, name: true, email: true }
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            companyName: true
+          }
         }
       }
     })

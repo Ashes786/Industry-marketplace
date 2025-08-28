@@ -14,43 +14,73 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const rfqId = params.id
-    const userId = session.user.id
-    const role = session.user.role
-
-    // Check if user has access to this RFQ
-    const rfq = await db.rFQ.findFirst({
+    const rfq = await db.rFQ.findUnique({
       where: {
-        id: rfqId,
-        OR: [
-          { buyerId: userId },
-          { sellerId: userId }
-        ]
+        id: params.id
       },
       include: {
         buyer: {
-          select: { id: true, name: true, email: true }
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            companyName: true
+          }
         },
-        seller: {
-          select: { id: true, name: true, email: true }
+        products: {
+          include: {
+            product: {
+              include: {
+                seller: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    companyName: true
+                  }
+                }
+              }
+            }
+          }
         },
         chats: {
           include: {
             sender: {
-              select: { id: true, name: true }
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                companyName: true
+              }
             },
             receiver: {
-              select: { id: true, name: true }
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                companyName: true
+              }
             }
           },
-          orderBy: { timestamp: 'desc' },
-          take: 1
+          orderBy: {
+            timestamp: 'asc'
+          }
         }
       }
     })
 
     if (!rfq) {
-      return NextResponse.json({ error: 'RFQ not found or access denied' }, { status: 404 })
+      return NextResponse.json({ error: 'RFQ not found' }, { status: 404 })
+    }
+
+    // Check if user is involved in this RFQ (buyer or seller who responded)
+    const isBuyer = rfq.buyerId === session.user.id
+    const isSeller = rfq.chats.some(chat => 
+      chat.senderId === session.user.id || chat.receiverId === session.user.id
+    )
+
+    if (!isBuyer && !isSeller && session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     return NextResponse.json(rfq)

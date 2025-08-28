@@ -1,375 +1,440 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
-  CreditCard, 
+  ArrowLeft, 
   Crown, 
   Star, 
-  Zap, 
-  Package,
+  Package, 
   TrendingUp,
-  Calendar,
-  CheckCircle,
-  AlertCircle,
+  CreditCard,
   Plus,
-  Settings,
-  Download,
-  HelpCircle
+  CheckCircle,
+  AlertTriangle,
+  Calendar,
+  Users,
+  BarChart3
 } from 'lucide-react'
+import Link from 'next/link'
 
-interface SubscriptionPlan {
-  id: string
-  name: string
-  price: number
-  duration: number
-  features: string[]
-  popular?: boolean
-  color: string
+interface SubscriptionManagerProps {
+  user: any
 }
 
-function SubscriptionContent() {
-  const { user, subscription } = useAuth()
-  const [selectedPlan, setSelectedPlan] = useState('')
-  const [extraListings, setExtraListings] = useState(0)
+interface Subscription {
+  id: string
+  planType: 'BASIC' | 'STANDARD' | 'PREMIUM'
+  startDate: string
+  endDate: string
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
+  amount: number
+}
+
+interface ExtraListing {
+  id: string
+  listingCount: number
+  amount: number
+  status: string
+}
+
+interface SubscriptionInfo {
+  subscription?: Subscription
+  extraListings: ExtraListing[]
+  listingLimit: number
+  totalExtraListings: number
+  activeProductsCount: number
+  canCreateMore: boolean
+}
+
+export default function SubscriptionManager({ user }: SubscriptionManagerProps) {
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [purchasing, setPurchasing] = useState(false)
 
   useEffect(() => {
-    if (subscription) {
-      setSelectedPlan(subscription.planType)
+    fetchSubscriptionInfo()
+  }, [])
+
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const response = await fetch('/api/subscription')
+      if (response.ok) {
+        const data = await response.json()
+        setSubscriptionInfo(data)
+      }
+    } catch (error) {
+      console.error('Error fetching subscription info:', error)
+    } finally {
+      setLoading(false)
     }
-  }, [subscription])
+  }
 
-  const plans: SubscriptionPlan[] = [
-    {
-      id: 'BASIC',
-      name: 'Basic',
-      price: 0,
-      duration: 365,
-      features: [
-        '10 product listings',
-        'Basic analytics',
-        'Email support',
-        'Standard visibility'
-      ],
-      color: 'bg-gray-100 text-gray-800 border-gray-300'
-    },
-    {
-      id: 'STANDARD',
-      name: 'Standard',
-      price: 5000,
-      duration: 30,
-      features: [
-        '50 product listings',
-        'Advanced analytics',
-        'Priority support',
-        'Enhanced visibility',
-        'Featured products (2/month)',
-        'Business verification'
-      ],
-      popular: true,
-      color: 'bg-blue-100 text-blue-800 border-blue-300'
-    },
-    {
-      id: 'PREMIUM',
-      name: 'Premium',
-      price: 12000,
-      duration: 30,
-      features: [
-        '200 product listings',
-        'Premium analytics',
-        '24/7 phone support',
-        'Maximum visibility',
-        'Featured products (10/month)',
-        'Business verification',
-        'Dedicated account manager',
-        'Custom branding'
-      ],
-      color: 'bg-purple-100 text-purple-800 border-purple-300'
+  const purchaseSubscription = async (planType: string, amount: number) => {
+    setPurchasing(true)
+    try {
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ planType, amount }),
+      })
+
+      if (response.ok) {
+        fetchSubscriptionInfo()
+      }
+    } catch (error) {
+      console.error('Error purchasing subscription:', error)
+    } finally {
+      setPurchasing(false)
     }
-  ]
+  }
 
-  const extraListingPricing = [
-    { quantity: 5, price: 1000, discount: 0 },
-    { quantity: 10, price: 1800, discount: 10 },
-    { quantity: 25, price: 4000, discount: 20 },
-    { quantity: 50, price: 7000, discount: 30 }
-  ]
+  const purchaseExtraListings = async (listingCount: number) => {
+    setPurchasing(true)
+    try {
+      const response = await fetch('/api/subscriptions/extra-listings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ listingCount }),
+      })
 
-  const getPlanLimits = (planType: string) => {
+      if (response.ok) {
+        fetchSubscriptionInfo()
+      }
+    } catch (error) {
+      console.error('Error purchasing extra listings:', error)
+    } finally {
+      setPurchasing(false)
+    }
+  }
+
+  const getPlanDetails = (planType: string) => {
     switch (planType) {
-      case 'BASIC': return 10
-      case 'STANDARD': return 50
-      case 'PREMIUM': return 200
-      default: return 10
+      case 'BASIC':
+        return {
+          name: 'Basic',
+          price: 'Free',
+          listings: 2,
+          features: ['2 listings', 'Basic RFQ system', 'Company profile', 'Basic support'],
+          color: 'bg-gray-100 text-gray-800'
+        }
+      case 'STANDARD':
+        return {
+          name: 'Standard',
+          price: 'Rs. 5,000/month',
+          listings: 15,
+          features: ['15 listings', 'Unlimited RFQs', 'Advanced analytics', 'Priority placement', 'Email & chat support'],
+          color: 'bg-blue-100 text-blue-800'
+        }
+      case 'PREMIUM':
+        return {
+          name: 'Premium',
+          price: 'Rs. 12,000/month',
+          listings: -1, // Unlimited
+          features: ['Unlimited listings', 'Priority RFQ processing', 'Advanced analytics', 'Featured badge', 'Dedicated support'],
+          color: 'bg-purple-100 text-purple-800'
+        }
+      default:
+        return {
+          name: 'Basic',
+          price: 'Free',
+          listings: 2,
+          features: ['2 listings', 'Basic RFQ system'],
+          color: 'bg-gray-100 text-gray-800'
+        }
     }
   }
 
-  const currentPlan = plans.find(p => p.id === (subscription?.planType || 'BASIC'))
-  const currentLimits = getPlanLimits(subscription?.planType || 'BASIC')
-  const usagePercentage = 75 // Mock usage percentage
-
-  const handleUpgrade = (planId: string) => {
-    console.log('Upgrading to plan:', planId)
-    // TODO: Implement upgrade logic
+  const getDaysRemaining = (endDate: string) => {
+    const end = new Date(endDate)
+    const now = new Date()
+    const diffTime = end.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays > 0 ? diffDays : 0
   }
 
-  const handlePurchaseExtraListings = () => {
-    console.log('Purchasing extra listings:', extraListings)
-    // TODO: Implement purchase logic
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Subscription Management</h1>
-        <p className="text-gray-600">Manage your subscription plan and extra listings</p>
-      </div>
-
-      {/* Current Subscription */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Current Subscription
-          </CardTitle>
-          <CardDescription>Your active subscription plan and usage</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${currentPlan?.color}`}>
-                {currentPlan?.name}
-                {currentPlan?.popular && <Crown className="h-4 w-4" />}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Current Plan</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold text-purple-600">
-                {usagePercentage}/{currentLimits}
-              </div>
-              <div className="text-sm text-gray-600">Products Used</div>
-              <div className="text-xs text-gray-500">{usagePercentage.toFixed(0)}% of limit</div>
-            </div>
-            <div className="text-center">
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
-                subscription?.status === 'ACTIVE' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                {subscription?.status === 'ACTIVE' ? (
-                  <>
-                    <CheckCircle className="h-4 w-4" />
-                    Active
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-4 w-4" />
-                    Expired
-                  </>
-                )}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">Status</div>
-            </div>
-          </div>
-          
-          <div className="mt-6">
-            <div className="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Product Listing Usage</span>
-              <span>{usagePercentage.toFixed(0)}%</span>
-            </div>
-            <Progress value={usagePercentage} className="h-2" />
-            {usagePercentage > 80 && (
-              <div className="mt-2 text-sm text-yellow-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                Approaching product limit. Consider upgrading your plan.
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              {subscription?.endDate && (
-                <span>Renews on: {new Date(subscription.endDate).toLocaleDateString()}</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Download className="h-3 w-3 mr-1" />
-                Download Invoice
-              </Button>
-              <Button variant="outline" size="sm">
-                <Settings className="h-3 w-3 mr-1" />
-                Cancel Subscription
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Available Plans */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Available Plans</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <Card key={plan.id} className={`relative ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}>
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-blue-500 text-white">
-                    <Star className="h-3 w-3 mr-1" />
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-              
-              <CardHeader className="text-center">
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${plan.color}`}>
-                  {plan.name}
-                  {plan.popular && <Crown className="h-4 w-4" />}
-                </div>
-                <div className="mt-2">
-                  <span className="text-3xl font-bold">Rs. {plan.price.toLocaleString()}</span>
-                  <span className="text-gray-600">/{plan.duration} days</span>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <ul className="space-y-2 mb-6">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                
-                <Button 
-                  className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                  variant={plan.id === selectedPlan ? 'outline' : 'default'}
-                  disabled={plan.id === selectedPlan}
-                  onClick={() => handleUpgrade(plan.id)}
-                >
-                  {plan.id === selectedPlan ? 'Current Plan' : `Upgrade to ${plan.name}`}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading subscription information...</p>
         </div>
       </div>
+    )
+  }
 
-      {/* Extra Listings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Buy Extra Listings
-          </CardTitle>
-          <CardDescription>Purchase additional product listings for your current plan</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {extraListingPricing.map((option) => (
-              <Card key={option.quantity} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{option.quantity}</div>
-                  <div className="text-sm text-gray-600 mb-2">Extra Listings</div>
-                  <div className="text-lg font-semibold">Rs. {option.price.toLocaleString()}</div>
-                  {option.discount > 0 && (
-                    <div className="text-sm text-green-600">Save {option.discount}%</div>
+  if (!subscriptionInfo) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Unable to load subscription information</p>
+        </div>
+      </div>
+    )
+  }
+
+  const { subscription, extraListings, listingLimit, totalExtraListings, activeProductsCount, canCreateMore } = subscriptionInfo
+  const currentPlan = subscription ? getPlanDetails(subscription.planType) : getPlanDetails('BASIC')
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-xl font-semibold">Subscription Management</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Current Subscription Status */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5" />
+              Current Subscription
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className={currentPlan.color}>{currentPlan.name}</Badge>
+                  {subscription?.status === 'ACTIVE' && (
+                    <Badge className="bg-green-100 text-green-800">Active</Badge>
                   )}
-                  <div className="text-xs text-gray-500">
-                    Rs. {Math.round(option.price / option.quantity)} per listing
+                </div>
+                <p className="text-2xl font-bold">{currentPlan.price}</p>
+                {subscription && (
+                  <p className="text-sm text-gray-600">
+                    {getDaysRemaining(subscription.endDate)} days remaining
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="font-medium text-sm text-gray-900 mb-2">Listing Limit</h4>
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-blue-600" />
+                  <span className="text-lg font-semibold">
+                    {listingLimit === -1 ? 'Unlimited' : listingLimit}
+                  </span>
+                  {totalExtraListings > 0 && (
+                    <span className="text-sm text-gray-600">+ {totalExtraListings} extra</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium text-sm text-gray-900 mb-2">Usage</h4>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Active Products</span>
+                    <span>{activeProductsCount}</span>
                   </div>
+                  {listingLimit !== -1 && (
+                    <Progress 
+                      value={(activeProductsCount / (listingLimit + totalExtraListings)) * 100} 
+                      className="h-2"
+                    />
+                  )}
+                  <p className="text-xs text-gray-600">
+                    {canCreateMore ? 'Can create more listings' : 'Listing limit reached'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Available Plans */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {(['BASIC', 'STANDARD', 'PREMIUM'] as const).map((planType) => {
+            const plan = getPlanDetails(planType)
+            const isCurrentPlan = subscription?.planType === planType
+            const isPopular = planType === 'STANDARD'
+
+            return (
+              <Card key={planType} className={`relative ${isPopular ? 'border-blue-500 shadow-lg' : ''}`}>
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-blue-500 text-white">Most Popular</Badge>
+                  </div>
+                )}
+                
+                <CardHeader className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {planType === 'PREMIUM' && <Crown className="h-5 w-5 text-yellow-600" />}
+                    {planType === 'STANDARD' && <Star className="h-5 w-5 text-blue-600" />}
+                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  </div>
+                  <CardDescription className="text-2xl font-bold">{plan.price}</CardDescription>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm">
+                        {plan.listings === -1 ? 'Unlimited listings' : `${plan.listings} listings`}
+                      </span>
+                    </div>
+                    {plan.features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    variant={isCurrentPlan ? "outline" : "default"}
+                    disabled={isCurrentPlan || purchasing}
+                    onClick={() => {
+                      const amount = planType === 'BASIC' ? 0 : planType === 'STANDARD' ? 5000 : 12000
+                      purchaseSubscription(planType, amount)
+                    }}
+                  >
+                    {isCurrentPlan ? 'Current Plan' : purchasing ? 'Processing...' : `Upgrade to ${plan.name}`}
+                  </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            )
+          })}
+        </div>
 
-          <div className="border-t pt-4">
-            <h3 className="font-medium mb-3">Custom Quantity</h3>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Number of extra listings
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={extraListings}
-                  onChange={(e) => setExtraListings(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="text-right">
-                <div className="text-sm text-gray-600">Total Price</div>
-                <div className="text-xl font-bold text-green-600">
-                  Rs. {(extraListings * 200).toLocaleString()}
-                </div>
-                <div className="text-xs text-gray-500">Rs. 200 per listing</div>
-              </div>
-            </div>
-            <Button 
-              className="mt-4" 
-              disabled={extraListings <= 0}
-              onClick={handlePurchaseExtraListings}
-            >
-              <Plus className="h-4 w-4 mr-2" />
+        {/* Extra Listings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
               Purchase Extra Listings
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Billing Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Billing Information
-          </CardTitle>
-          <CardDescription>Manage your payment methods and billing history</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <div className="font-medium">•••• •••• •••• 4242</div>
-                  <div className="text-sm text-gray-600">Expires 12/25</div>
-                </div>
-              </div>
-              <Badge className="bg-green-100 text-green-800">Default</Badge>
+            </CardTitle>
+            <CardDescription>
+              Need more listings? Purchase extra listings at Rs. 300 per listing
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4">
+              {[5, 10, 20].map((count) => {
+                const amount = count * 300
+                return (
+                  <div key={count} className="border rounded-lg p-4 text-center">
+                    <h4 className="font-semibold text-lg">{count} Listings</h4>
+                    <p className="text-2xl font-bold text-blue-600 mb-4">Rs. {amount.toLocaleString()}</p>
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      disabled={purchasing}
+                      onClick={() => purchaseExtraListings(count)}
+                    >
+                      {purchasing ? 'Processing...' : 'Purchase'}
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
             
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Payment Method
-              </Button>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Billing History
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
+            {extraListings.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium mb-3">Your Extra Listings</h4>
+                <div className="space-y-2">
+                  {extraListings.map((listing) => (
+                    <div key={listing.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-blue-600" />
+                        <span>{listing.listingCount} extra listings</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">Rs. {listing.amount.toLocaleString()}</p>
+                        <Badge className={listing.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                          {listing.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-export default function SubscriptionPage() {
-  return (
-    <ProtectedRoute>
-      <SubscriptionContent />
-    </ProtectedRoute>
+        {/* Usage Analytics */}
+        <div className="grid md:grid-cols-4 gap-6 mt-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Listings</p>
+                  <p className="text-2xl font-bold">{listingLimit === -1 ? 'Unlimited' : listingLimit + totalExtraListings}</p>
+                </div>
+                <Package className="h-8 w-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Used</p>
+                  <p className="text-2xl font-bold">{activeProductsCount}</p>
+                </div>
+                <BarChart3 className="h-8 w-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Available</p>
+                  <p className="text-2xl font-bold">
+                    {listingLimit === -1 ? 'Unlimited' : Math.max(0, (listingLimit + totalExtraListings) - activeProductsCount)}
+                  </p>
+                </div>
+                <Plus className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Efficiency</p>
+                  <p className="text-2xl font-bold">
+                    {listingLimit === -1 ? 'N/A' : `${Math.round((activeProductsCount / (listingLimit + totalExtraListings)) * 100)}%`}
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
   )
 }

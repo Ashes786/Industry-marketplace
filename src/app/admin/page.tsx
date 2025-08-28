@@ -301,36 +301,6 @@ export default function AdminPanel() {
             </SidebarGroup>
 
             <SidebarGroup>
-              <SidebarGroupLabel>Content</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <button 
-                        className={`w-full justify-start ${activeTab === 'products' ? 'bg-blue-100' : ''}`}
-                        onClick={() => setActiveTab('products')}
-                      >
-                        <Package className="h-4 w-4" />
-                        <span>Products</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <button 
-                        className={`w-full justify-start ${activeTab === 'rfqs' ? 'bg-blue-100' : ''}`}
-                        onClick={() => setActiveTab('rfqs')}
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>RFQs</span>
-                      </button>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
               <SidebarGroupLabel>Reports</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
@@ -387,8 +357,6 @@ export default function AdminPanel() {
                   {activeTab === 'users' && 'User Management'}
                   {activeTab === 'subscriptions' && 'Subscription Management'}
                   {activeTab === 'transactions' && 'Transaction Management'}
-                  {activeTab === 'products' && 'Product Management'}
-                  {activeTab === 'rfqs' && 'RFQ Management'}
                   {activeTab === 'reports' && 'Analytics & Reports'}
                 </h2>
               </div>

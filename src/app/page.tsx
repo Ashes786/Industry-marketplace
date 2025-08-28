@@ -155,7 +155,7 @@ export default function Home() {
     },
     {
       title: 'Price Negotiation Hassles',
-      solution: 'Streamlined RFQ process with real-time chat negotiations',
+      solution: 'Streamlined messaging process with real-time negotiations',
       icon: <MessageSquare className="h-6 w-6 text-red-600" />
     },
     {
@@ -165,7 +165,7 @@ export default function Home() {
     },
     {
       title: 'Slow Procurement',
-      solution: 'Fast RFQ responses and quick deal finalization',
+      solution: 'Fast responses and quick deal finalization',
       icon: <Clock className="h-6 w-6 text-red-600" />
     }
   ]

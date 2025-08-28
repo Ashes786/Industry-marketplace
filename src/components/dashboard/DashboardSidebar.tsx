@@ -36,7 +36,7 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
 
   const isBuyer = user.roles === 'BUYER' || user.roles === 'BOTH'
   const isSeller = user.roles === 'SELLER' || user.roles === 'BOTH'
-  const isAdmin = user.isAdmin
+  const isAdmin = user.roles === 'ADMIN'
 
   const getNavItems = () => {
     const baseItems = [
@@ -174,7 +174,7 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
               <Badge variant="secondary" className="text-xs">
                 {user.roles}
               </Badge>
-              {user.isAdmin && (
+              {user.roles === 'ADMIN' && (
                 <Badge variant="outline" className="text-xs">
                   Admin
                 </Badge>

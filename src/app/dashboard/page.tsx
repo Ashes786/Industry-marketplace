@@ -48,7 +48,7 @@ function DashboardContent() {
 
   // Render appropriate dashboard based on user role
   const renderDashboard = () => {
-    if (user.isAdmin) {
+    if (user.roles === 'ADMIN') {
       return <AdminDashboard user={user} />
     } else if (user.roles === 'BUYER') {
       return <BuyerDashboard user={user} />
@@ -79,7 +79,7 @@ function DashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">
-                {user.isAdmin ? 'Admin Dashboard' : `${user.roles} Dashboard`}
+                {user.roles === 'ADMIN' ? 'Admin Dashboard' : `${user.roles} Dashboard`}
               </h1>
               <p className="text-sm text-gray-600">
                 Welcome back, {user.name}!

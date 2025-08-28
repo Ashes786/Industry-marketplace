@@ -1,109 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      )
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user's current subscription
-    const currentSubscription = await db.subscription.findFirst({
+    const subscriptions = await db.subscription.findMany({
       where: {
-        userId: userId,
-        status: 'ACTIVE'
+        userId: session.user.id
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            roles: true
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'
       }
     })
 
-    // Get user's extra listings
-    const extraListings = await db.extraListing.findMany({
-      where: {
-        sellerId: userId,
-        status: 'active'
-      }
-    })
-
-    // Calculate current usage
-    const activeListings = await db.product.count({
-      where: {
-        sellerId: userId,
-        isActive: true
-      }
-    })
-
-    const subscriptionLimits = {
-      BASIC: { listings: 2, rfqs: 5 },
-      STANDARD: { listings: 20, rfqs: 'unlimited' },
-      PREMIUM: { listings: 'unlimited', rfqs: 'unlimited' }
-    }
-
-    const currentPlan = currentSubscription?.planType || 'BASIC'
-    const limits = subscriptionLimits[currentPlan as keyof typeof subscriptionLimits]
-    const totalExtraListings = extraListings.reduce((sum, listing) => sum + listing.listingCount, 0)
-
-    const usageStats = {
-      currentPlan,
-      listingsUsed: activeListings,
-      listingsLimit: limits.listings,
-      extraListingsAvailable: totalExtraListings,
-      totalListingsAvailable: limits.listings === 'unlimited' ? 'unlimited' : limits.listings + totalExtraListings,
-      rfqLimit: limits.rfqs,
-      subscriptionEnds: currentSubscription?.endDate || null,
-      features: getPlanFeatures(currentPlan)
-    }
-
-    return NextResponse.json({
-      subscription: currentSubscription,
-      extraListings,
-      usageStats
-    })
-
+    return NextResponse.json(subscriptions)
   } catch (error) {
-    console.error('Error fetching subscription:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    console.error('Error fetching subscriptions:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role !== 'SELLER' && session.user.role !== 'BOTH') {
+      return NextResponse.json({ error: 'Only sellers can purchase subscriptions' }, { status: 403 })
+    }
+
     const body = await request.json()
-    const { userId, planType, amount } = body
+    const { planType, amount } = body
 
-    if (!userId || !planType) {
-      return NextResponse.json(
-        { error: 'User ID and plan type are required' },
-        { status: 400 }
-      )
+    if (!planType || !amount) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Calculate subscription duration and amount
-    const planDetails = {
-      BASIC: { duration: 365, amount: 0 }, // 1 year free
-      STANDARD: { duration: 30, amount: 5000 }, // 1 month
-      PREMIUM: { duration: 30, amount: 12000 } // 1 month
+    // Calculate subscription duration and listing limits
+    let listingLimit = 2 // Basic default
+    let duration = 30 // days
+
+    switch (planType) {
+      case 'STANDARD':
+        listingLimit = 15
+        duration = 30
+        break
+      case 'PREMIUM':
+        listingLimit = -1 // Unlimited
+        duration = 30
+        break
+      default:
+        listingLimit = 2
+        duration = 30
     }
 
-    const plan = planDetails[planType as keyof typeof planDetails]
     const startDate = new Date()
     const endDate = new Date()
-    endDate.setDate(endDate.getDate() + plan.duration)
+    endDate.setDate(endDate.getDate() + duration)
 
-    // Deactivate existing subscriptions
+    // Deactivate previous subscriptions
     await db.subscription.updateMany({
       where: {
-        userId: userId,
+        userId: session.user.id,
         status: 'ACTIVE'
       },
       data: {
@@ -111,66 +89,30 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create new subscription
     const subscription = await db.subscription.create({
       data: {
-        userId,
-        planType: planType as any,
+        userId: session.user.id,
+        planType,
         startDate,
         endDate,
         status: 'ACTIVE',
-        amount: amount || plan.amount
+        amount: parseFloat(amount)
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            roles: true
+          }
+        }
       }
     })
 
-    return NextResponse.json({
-      message: 'Subscription created successfully',
-      subscription: {
-        id: subscription.id,
-        planType: subscription.planType,
-        startDate: subscription.startDate,
-        endDate: subscription.endDate,
-        status: subscription.status,
-        amount: subscription.amount
-      }
-    })
-
+    return NextResponse.json(subscription, { status: 201 })
   } catch (error) {
     console.error('Error creating subscription:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
-
-function getPlanFeatures(planType: string) {
-  const features = {
-    BASIC: [
-      '1-2 product listings',
-      'Limited RFQ responses',
-      'Basic search visibility',
-      'Email support'
-    ],
-    STANDARD: [
-      '20 product listings',
-      'Unlimited RFQ responses',
-      'Enhanced search visibility',
-      'Analytics dashboard',
-      'Company profile',
-      'Priority email support'
-    ],
-    PREMIUM: [
-      'Unlimited product listings',
-      'Unlimited RFQ responses',
-      'Maximum search visibility',
-      'Advanced analytics',
-      'Featured badge',
-      'Priority RFQ placement',
-      'Dedicated account manager',
-      '24/7 phone support'
-    ]
-  }
-
-  return features[planType as keyof typeof features] || features.BASIC
 }
