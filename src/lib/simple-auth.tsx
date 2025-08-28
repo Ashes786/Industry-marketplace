@@ -18,6 +18,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   isLoading: boolean
+  authError: string | null
+  isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -25,30 +27,54 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [authError, setAuthError] = useState<string | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const router = useRouter()
 
+  // Initialize authentication state
   useEffect(() => {
-    // Check for existing auth data on mount (client-side only)
-    const checkAuth = () => {
-      if (typeof window !== 'undefined') {
-        const storedUser = localStorage.getItem('user')
-        if (storedUser) {
-          try {
-            setUser(JSON.parse(storedUser))
-          } catch (error) {
-            console.error('Error parsing stored user data:', error)
-            localStorage.removeItem('user')
+    const initializeAuth = () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            if (parsedUser && parsedUser.email && parsedUser.id) {
+              setUser(parsedUser)
+              setIsAuthenticated(true)
+              console.log('Auth: ✅ User restored from localStorage:', parsedUser.email)
+            } else {
+              console.log('Auth: ❌ Invalid user data in localStorage, clearing')
+              localStorage.removeItem('user')
+              setIsAuthenticated(false)
+            }
+          } else {
+            console.log('Auth: ℹ️ No user found in localStorage')
+            setIsAuthenticated(false)
           }
         }
+      } catch (error) {
+        console.error('Auth: ❌ Error initializing authentication:', error)
+        setAuthError('Failed to restore authentication state')
+        setIsAuthenticated(false)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+        }
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
-    checkAuth()
+    // Add a small delay to ensure proper initialization
+    const timer = setTimeout(initializeAuth, 100)
+    return () => clearTimeout(timer)
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Auth: 🔐 Attempting login for:', email)
+      setAuthError(null)
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -58,25 +84,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       const data = await response.json()
+      console.log('Auth: 📡 Login response:', { 
+        status: response.status, 
+        success: response.ok,
+        hasUser: !!data.user 
+      })
 
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed')
+        const errorMessage = data.error || 'Login failed'
+        setAuthError(errorMessage)
+        throw new Error(errorMessage)
       }
 
-      setUser(data.user)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(data.user))
+      if (data.user && data.user.email && data.user.id) {
+        setUser(data.user)
+        setIsAuthenticated(true)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(data.user))
+          console.log('Auth: ✅ User saved to localStorage:', data.user.email)
+        }
+        setAuthError(null)
+        return true
+      } else {
+        const errorMessage = 'Invalid user data received from server'
+        setAuthError(errorMessage)
+        throw new Error(errorMessage)
       }
-      
-      return true
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('Auth: ❌ Login error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Login failed'
+      setAuthError(errorMessage)
+      setIsAuthenticated(false)
       throw error
     }
   }
 
   const logout = () => {
+    console.log('Auth: 🚪 Logging out user:', user?.email)
     setUser(null)
+    setIsAuthenticated(false)
+    setAuthError(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user')
     }
@@ -84,7 +131,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      isLoading, 
+      authError, 
+      isAuthenticated 
+    }}>
       {children}
     </AuthContext.Provider>
   )
@@ -99,26 +153,70 @@ export function useAuth() {
 }
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, authError, isAuthenticated } = useAuth()
   const router = useRouter()
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !isAuthenticated && !isRedirecting) {
+      console.log('ProtectedRoute: 🔄 No authenticated user, redirecting to signin')
+      setIsRedirecting(true)
       router.push('/auth/signin')
     }
-  }, [user, isLoading, router])
+  }, [isAuthenticated, isLoading, router, isRedirecting])
 
+  // Show loading spinner while checking authentication
   if (isLoading) {
+    console.log('ProtectedRoute: ⏳ Checking authentication...')
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     )
   }
 
-  if (!user) {
+  // Show error state if there's an authentication error
+  if (authError) {
+    console.log('ProtectedRoute: ❌ Authentication error:', authError)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="text-red-600 text-lg font-semibold mb-4">Authentication Error</div>
+          <div className="text-gray-600 mb-6">{authError}</div>
+          <div className="space-y-3">
+            <button 
+              onClick={() => router.push('/auth/signin')}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Go to Login
+            </button>
+            <button 
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem('user')
+                  window.location.reload()
+                }
+              }}
+              className="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              Clear Cache & Reload
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated and not loading, don't render anything (will redirect)
+  if (!isAuthenticated) {
+    console.log('ProtectedRoute: 🚫 Not authenticated, showing nothing')
     return null
   }
 
+  // User is authenticated, render the protected content
+  console.log('ProtectedRoute: ✅ User authenticated, showing protected content')
   return <>{children}</>
 }

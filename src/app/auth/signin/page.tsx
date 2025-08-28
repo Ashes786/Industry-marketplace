@@ -25,12 +25,21 @@ export default function SignInPage() {
     setError('')
 
     try {
+      console.log('Signin: 🔐 Attempting login for:', email)
       const success = await login(email, password)
       
       if (success) {
-        router.push('/dashboard')
+        console.log('Signin: ✅ Login successful, redirecting to dashboard')
+        // Add a small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 200)
+      } else {
+        console.log('Signin: ❌ Login failed but no error thrown')
+        setError('Login failed. Please try again.')
       }
     } catch (error) {
+      console.error('Signin: ❌ Login error:', error)
       if (error instanceof Error) {
         setError(error.message)
       } else {
