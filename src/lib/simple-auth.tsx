@@ -42,14 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (parsedUser && parsedUser.email && parsedUser.id) {
               setUser(parsedUser)
               setIsAuthenticated(true)
-              console.log('Auth: ✅ User restored from localStorage:', parsedUser.email)
             } else {
-              console.log('Auth: ❌ Invalid user data in localStorage, clearing')
               localStorage.removeItem('user')
               setIsAuthenticated(false)
             }
           } else {
-            console.log('Auth: ℹ️ No user found in localStorage')
             setIsAuthenticated(false)
           }
         }
@@ -70,7 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      console.log('Auth: 🔐 Attempting login for:', email)
       setAuthError(null)
       
       const response = await fetch('/api/auth/login', {
@@ -82,11 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       const data = await response.json()
-      console.log('Auth: 📡 Login response:', { 
-        status: response.status, 
-        success: response.ok,
-        hasUser: !!data.user 
-      })
 
       if (!response.ok) {
         const errorMessage = data.error || 'Login failed'
@@ -99,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(true)
         if (typeof window !== 'undefined') {
           localStorage.setItem('user', JSON.stringify(data.user))
-          console.log('Auth: ✅ User saved to localStorage:', data.user.email)
         }
         setAuthError(null)
         return true
@@ -118,7 +108,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
-    console.log('Auth: 🚪 Logging out user:', user?.email)
     setUser(null)
     setIsAuthenticated(false)
     setAuthError(null)
@@ -145,7 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    console.error('Auth: ❌ useAuth must be used within an AuthProvider')
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
@@ -158,7 +146,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isRedirecting) {
-      console.log('ProtectedRoute: 🔄 No authenticated user, redirecting to signin')
       setIsRedirecting(true)
       router.push('/auth/signin')
     }
@@ -166,7 +153,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   // Show loading spinner while checking authentication
   if (isLoading) {
-    console.log('ProtectedRoute: ⏳ Checking authentication...')
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -179,7 +165,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   // Show error state if there's an authentication error
   if (authError) {
-    console.log('ProtectedRoute: ❌ Authentication error:', authError)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center max-w-md mx-auto p-6">
@@ -211,11 +196,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   // If not authenticated and not loading, don't render anything (will redirect)
   if (!isAuthenticated) {
-    console.log('ProtectedRoute: 🚫 Not authenticated, showing nothing')
     return null
   }
 
   // User is authenticated, render the protected content
-  console.log('ProtectedRoute: ✅ User authenticated, showing protected content')
   return <>{children}</>
 }

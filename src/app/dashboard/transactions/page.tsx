@@ -2,431 +2,298 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, CheckCircle, Clock, AlertTriangle, Download, Eye, Rupee } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { 
+  FileText, 
+  Search, 
+  Filter, 
+  Eye, 
+  Download,
+  DollarSign,
+  Calendar,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  CreditCard,
+  Receipt,
+  TrendingUp
+} from 'lucide-react'
 
-interface Transaction {
-  id: string
-  productPrice: number
-  commissionAmount: number
-  totalAmount: number
-  status: string
-  invoiceNumber: string
-  paymentDate?: string
-  createdAt: string
-  buyer: {
-    id: string
-    name: string
-    email: string
-  }
-  seller: {
-    id: string
-    name: string
-    email: string
-  }
-  rfq?: {
-    id: string
-    title: string
-  }
-  product?: {
-    id: string
-    title: string
-  }
-  invoice?: {
-    id: string
-    invoiceNumber: string
-    pdfUrl?: string
-  }
-}
-
-interface TransactionResponse {
-  transactions: Transaction[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    pages: number
-  }
-}
-
-export default function TransactionsPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
-  const [buyerTransactions, setBuyerTransactions] = useState<Transaction[]>([])
-  const [sellerTransactions, setSellerTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+function TransactionsContent() {
+  const { user } = useAuth()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [transactions, setTransactions] = useState([])
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/signin')
-      return
-    }
-
-    if (user) {
-      fetchTransactions()
-    }
-  }, [user, isAuthenticated, isLoading, router])
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true)
-      
-      const [buyerResponse, sellerResponse] = await Promise.all([
-        fetch('/api/transactions?type=buyer'),
-        fetch('/api/transactions?type=seller')
-      ])
-
-      if (buyerResponse.ok) {
-        const buyerData: TransactionResponse = await buyerResponse.json()
-        setBuyerTransactions(buyerData.transactions)
+    // Mock data - in real app, fetch from API based on user role
+    const isBuyer = user.roles === 'BUYER' || user.roles === 'BOTH'
+    
+    setTransactions([
+      {
+        id: '1',
+        rfqTitle: 'Steel Pipes for Construction',
+        counterpartyName: isBuyer ? 'Steel Industries Ltd' : 'Construction Co.',
+        amount: 485000,
+        commission: 9700,
+        totalAmount: 494700,
+        status: 'COMPLETED',
+        paymentMethod: 'Bank Transfer',
+        date: '2024-01-15',
+        invoiceNumber: 'INV-2024-001',
+        invoicePdf: '/invoices/INV-2024-001.pdf'
+      },
+      {
+        id: '2',
+        rfqTitle: 'Electrical Components',
+        counterpartyName: isBuyer ? 'Tech Suppliers' : 'Manufacturing Ltd',
+        amount: 125000,
+        commission: 2500,
+        totalAmount: 127500,
+        status: 'COMPLETED',
+        paymentMethod: 'JazzCash',
+        date: '2024-01-10',
+        invoiceNumber: 'INV-2024-002',
+        invoicePdf: '/invoices/INV-2024-002.pdf'
+      },
+      {
+        id: '3',
+        rfqTitle: 'Industrial Machinery Parts',
+        counterpartyName: isBuyer ? 'Industrial Solutions' : 'Factory Corp',
+        amount: 350000,
+        commission: 7000,
+        totalAmount: 357000,
+        status: 'PENDING',
+        paymentMethod: 'EasyPaisa',
+        date: '2024-01-20',
+        invoiceNumber: 'INV-2024-003',
+        invoicePdf: '/invoices/INV-2024-003.pdf'
+      },
+      {
+        id: '4',
+        rfqTitle: 'Cement Supply',
+        counterpartyName: isBuyer ? 'Building Materials Co' : 'Construction Ltd',
+        amount: 750000,
+        commission: 15000,
+        totalAmount: 765000,
+        status: 'PAID',
+        paymentMethod: 'Bank Transfer',
+        date: '2024-01-18',
+        invoiceNumber: 'INV-2024-004',
+        invoicePdf: '/invoices/INV-2024-004.pdf'
       }
+    ])
+  }, [user])
 
-      if (sellerResponse.ok) {
-        const sellerData: TransactionResponse = await sellerResponse.json()
-        setSellerTransactions(sellerData.transactions)
-      }
-    } catch (error) {
-      setError('Failed to fetch transactions')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const isBuyer = user.roles === 'BUYER' || user.roles === 'BOTH'
 
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
-      case 'PAID':
-        return <Badge className="bg-blue-100 text-blue-800">Paid</Badge>
-      case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>
-      case 'FAILED':
-        return <Badge variant="destructive">Failed</Badge>
-      case 'REFUNDED':
-        return <Badge className="bg-gray-100 text-gray-800">Refunded</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>
+      case 'COMPLETED': return 'bg-green-100 text-green-800'
+      case 'PAID': return 'bg-blue-100 text-blue-800'
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
+      case 'FAILED': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="w-4 h-4 text-yellow-600" />
-      case 'PAID':
-        return <Clock className="w-4 h-4 text-blue-600" />
-      case 'COMPLETED':
-        return <CheckCircle className="w-4 h-4 text-green-600" />
-      case 'FAILED':
-        return <AlertTriangle className="w-4 h-4 text-red-600" />
-      case 'REFUNDED':
-        return <AlertTriangle className="w-4 h-4 text-gray-600" />
-      default:
-        return <Clock className="w-4 h-4 text-gray-600" />
-    }
-  }
+  const filteredTransactions = transactions.filter((transaction: any) => {
+    const matchesSearch = transaction.rfqTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         transaction.counterpartyName.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
 
-  const handleDownloadInvoice = (invoiceNumber: string) => {
-    // In a real implementation, this would download the PDF
-    alert(`Downloading invoice: ${invoiceNumber}`)
-  }
-
-  const handleViewDetails = (transactionId: string) => {
-    router.push(`/dashboard/transactions/${transactionId}`)
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
-
-  const TransactionTable = ({ transactions, type }: { transactions: Transaction[], type: 'buyer' | 'seller' }) => (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Transaction ID</TableHead>
-            <TableHead>{type === 'buyer' ? 'Seller' : 'Buyer'}</TableHead>
-            <TableHead>Product/RFQ</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Commission</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transactions.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                No transactions found
-              </TableCell>
-            </TableRow>
-          ) : (
-            transactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell className="font-mono text-sm">
-                  {transaction.invoiceNumber}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">
-                      {type === 'buyer' ? transaction.seller.name : transaction.buyer.name}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {type === 'buyer' ? transaction.seller.email : transaction.buyer.email}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="max-w-xs">
-                    <div className="font-medium truncate">
-                      {transaction.product?.title || transaction.rfq?.title || 'N/A'}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {transaction.product ? 'Product' : 'RFQ'}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium">
-                  {formatCurrency(transaction.productPrice)}
-                </TableCell>
-                <TableCell className="text-red-600">
-                  {formatCurrency(transaction.commissionAmount)}
-                </TableCell>
-                <TableCell className="font-medium">
-                  {formatCurrency(transaction.totalAmount)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(transaction.status)}
-                    {getStatusBadge(transaction.status)}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {new Date(transaction.createdAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewDetails(transaction.id)}
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    {transaction.invoice && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownloadInvoice(transaction.invoiceNumber)}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  )
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
+  const totalSpent = transactions
+    .filter(t => t.status === 'COMPLETED' || t.status === 'PAID')
+    .reduce((sum, t) => sum + (isBuyer ? t.totalAmount : t.amount), 0)
+    
+  const totalCommission = transactions
+    .filter(t => t.status === 'COMPLETED' || t.status === 'PAID')
+    .reduce((sum, t) => sum + t.commission, 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="space-y-6">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+          <p className="text-gray-600">View your transaction history and invoices</p>
         </div>
-      </header>
+        <Button variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Export All
+        </Button>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Purchases</CardTitle>
-              <Rupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(
-                  buyerTransactions.reduce((sum, t) => sum + t.totalAmount, 0)
-                )}
+      {/* Summary Stats */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">
+                  {isBuyer ? 'Total Spent' : 'Total Earned'}
+                </p>
+                <p className="text-2xl font-bold">Rs. {totalSpent.toLocaleString()}</p>
+                <p className="text-sm text-green-600">This month</p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                As buyer
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
-              <Rupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(
-                  sellerTransactions.reduce((sum, t) => sum + t.productPrice, 0)
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                As seller
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Commission Earned</CardTitle>
-              <Rupee className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(
-                  buyerTransactions.reduce((sum, t) => sum + t.commissionAmount, 0)
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Platform revenue
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {[...buyerTransactions, ...sellerTransactions].filter(t => t.status === 'PENDING').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Awaiting action
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Transaction Tables */}
-        <Tabs defaultValue="buyer" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="buyer">As Buyer ({buyerTransactions.length})</TabsTrigger>
-            <TabsTrigger value="seller">As Seller ({sellerTransactions.length})</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="buyer">
-            <Card>
-              <CardHeader>
-                <CardTitle>Purchase Transactions</CardTitle>
-                <CardDescription>
-                  Transactions where you are the buyer
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TransactionTable transactions={buyerTransactions} type="buyer" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="seller">
-            <Card>
-              <CardHeader>
-                <CardTitle>Sales Transactions</CardTitle>
-                <CardDescription>
-                  Transactions where you are the seller
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TransactionTable transactions={sellerTransactions} type="seller" />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Commission Info */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Commission Structure</CardTitle>
-            <CardDescription>
-              How we calculate transaction fees
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <h4 className="font-medium">For transactions ≤ Rs. 50,000</h4>
-                <p className="text-sm text-gray-600">Fixed commission of Rs. 500</p>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Example:</p>
-                  <p className="text-sm">Product Price: Rs. 30,000</p>
-                  <p className="text-sm">Commission: Rs. 500</p>
-                  <p className="text-sm font-medium">Total: Rs. 30,500</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-medium">For transactions &gt; Rs. 50,000</h4>
-                <p className="text-sm text-gray-600">2% commission on product price</p>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm font-medium">Example:</p>
-                  <p className="text-sm">Product Price: Rs. 100,000</p>
-                  <p className="text-sm">Commission: Rs. 2,000 (2%)</p>
-                  <p className="text-sm font-medium">Total: Rs. 102,000</p>
-                </div>
-              </div>
+              <DollarSign className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500">Total Transactions</p>
+                <p className="text-2xl font-bold">{transactions.length}</p>
+                <p className="text-sm text-green-600">
+                  {transactions.filter(t => t.status === 'COMPLETED').length} completed
+                </p>
+              </div>
+              <FileText className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        {isBuyer && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Total Commission</p>
+                  <p className="text-2xl font-bold">Rs. {totalCommission.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Platform fees</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Search and Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="Search transactions..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="FAILED">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline">
+              <Filter className="h-4 w-4 mr-2" />
+              More Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transactions List */}
+      <div className="space-y-4">
+        {filteredTransactions.map((transaction: any) => (
+          <Card key={transaction.id} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold">{transaction.rfqTitle}</h3>
+                    <Badge className={getStatusColor(transaction.status)}>
+                      {transaction.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div className="text-sm">
+                      <div className="text-gray-600">
+                        {isBuyer ? 'Seller' : 'Buyer'}
+                      </div>
+                      <div className="font-medium">{transaction.counterpartyName}</div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-gray-600">Amount</div>
+                      <div className="font-medium">
+                        Rs. {isBuyer ? transaction.totalAmount.toLocaleString() : transaction.amount.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-gray-600">Payment Method</div>
+                      <div className="font-medium">{transaction.paymentMethod}</div>
+                    </div>
+                    <div className="text-sm">
+                      <div className="text-gray-600">Date</div>
+                      <div className="font-medium">{transaction.date}</div>
+                    </div>
+                  </div>
+
+                  {isBuyer && (
+                    <div className="text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <span>Commission: Rs. {transaction.commission.toLocaleString()}</span>
+                        <span>•</span>
+                        <span>Invoice: {transaction.invoiceNumber}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 ml-4">
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-3 w-3 mr-1" />
+                    View Details
+                  </Button>
+                  {transaction.invoicePdf && (
+                    <Button size="sm" variant="outline">
+                      <Download className="h-3 w-3 mr-1" />
+                      Invoice
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredTransactions.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <FileText className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
+            <p className="text-gray-600">Your transaction history will appear here</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
 
-export default function ProtectedTransactionsPage() {
+export default function TransactionsPage() {
   return (
     <ProtectedRoute>
-      <TransactionsPage />
+      <TransactionsContent />
     </ProtectedRoute>
   )
 }

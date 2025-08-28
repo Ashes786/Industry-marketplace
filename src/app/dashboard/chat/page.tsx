@@ -1,454 +1,349 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Send, Paperclip, Phone, Mail, CheckCircle, Clock } from 'lucide-react'
-import { io, Socket } from 'socket.io-client'
+import { Input } from '@/components/ui/input'
+import { 
+  MessageSquare, 
+  Search, 
+  Send, 
+  Paperclip, 
+  Image,
+  File,
+  Phone,
+  Video,
+  MoreHorizontal,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Users,
+  ShoppingCart,
+  Package,
+  Star
+} from 'lucide-react'
 
-interface ChatMessage {
+interface Message {
   id: string
-  rfqId: string
+  content: string
   senderId: string
-  receiverId: string
-  messageText?: string
-  attachments?: string[]
+  senderName: string
   timestamp: string
-  sender: {
-    id: string
-    name: string
-  }
-  receiver: {
-    id: string
-    name: string
-  }
+  type: 'text' | 'image' | 'file'
+  attachments?: string[]
 }
 
-interface RFQDetails {
+interface Chat {
   id: string
-  title: string
-  description: string
-  quantity: number
-  unit: string
-  budget?: number
-  status: string
-  buyer: {
-    id: string
-    name: string
-    email: string
-  }
-  seller?: {
-    id: string
-    name: string
-    email: string
-  }
+  rfqTitle: string
+  counterpartyName: string
+  counterpartyRole: string
+  lastMessage: string
+  lastMessageTime: string
+  unreadCount: number
+  status: 'active' | 'closed'
+  counterpartyRating?: number
 }
 
-export default function ChatPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const rfqId = searchParams.get('rfqId')
-  
-  const [socket, setSocket] = useState<Socket | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [rfqDetails, setRfqDetails] = useState<RFQDetails | null>(null)
+function ChatContent() {
+  const { user } = useAuth()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedChat, setSelectedChat] = useState<string | null>(null)
   const [message, setMessage] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [otherUserTyping, setOtherUserTyping] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [chats, setChats] = useState<Chat[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/auth/signin')
-      return
-    }
-
-    if (!rfqId || !user) {
-      return
-    }
-
-    // Initialize socket connection
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001')
-    setSocket(newSocket)
-
-    // Join RFQ room
-    newSocket.emit('join_rfq_room', {
-      rfqId,
-      userId: user.id
-    })
-
-    // Socket event listeners
-    newSocket.on('chat_history', (history: ChatMessage[]) => {
-      setMessages(history)
-      setLoading(false)
-    })
-
-    newSocket.on('new_message', (newMessage: ChatMessage) => {
-      setMessages(prev => [...prev, newMessage])
-      setOtherUserTyping(false)
-    })
-
-    newSocket.on('user_typing', (data: { userId: string }) => {
-      if (data.userId !== user.id) {
-        setOtherUserTyping(true)
+    // Mock data - in real app, fetch from API
+    setChats([
+      {
+        id: '1',
+        rfqTitle: 'Steel Pipes for Construction',
+        counterpartyName: 'Steel Industries Ltd',
+        counterpartyRole: 'SELLER',
+        lastMessage: 'Thank you for your interest. We can provide high-quality steel pipes at competitive rates.',
+        lastMessageTime: '2 hours ago',
+        unreadCount: 2,
+        status: 'active',
+        counterpartyRating: 4.5
+      },
+      {
+        id: '2',
+        rfqTitle: 'Electrical Components',
+        counterpartyName: 'Tech Suppliers',
+        counterpartyRole: 'SELLER',
+        lastMessage: 'Can you provide more details about the specifications you need?',
+        lastMessageTime: '1 day ago',
+        unreadCount: 0,
+        status: 'active',
+        counterpartyRating: 4.2
+      },
+      {
+        id: '3',
+        rfqTitle: 'Cement Supply Required',
+        counterpartyName: 'Construction Co.',
+        counterpartyRole: 'BUYER',
+        lastMessage: 'We need bulk cement supply for our upcoming project.',
+        lastMessageTime: '3 days ago',
+        unreadCount: 1,
+        status: 'active',
+        counterpartyRating: 4.7
+      },
+      {
+        id: '4',
+        rfqTitle: 'Industrial Machinery Parts',
+        counterpartyName: 'Factory Corp',
+        counterpartyRole: 'BUYER',
+        lastMessage: 'Deal completed successfully. Thank you!',
+        lastMessageTime: '1 week ago',
+        unreadCount: 0,
+        status: 'closed',
+        counterpartyRating: 4.8
       }
-    })
+    ])
 
-    newSocket.on('user_stopped_typing', (data: { userId: string }) => {
-      if (data.userId !== user.id) {
-        setOtherUserTyping(false)
+    // Mock messages for selected chat
+    setMessages([
+      {
+        id: '1',
+        content: 'Hello, I\'m interested in your steel pipes for our construction project.',
+        senderId: 'buyer-1',
+        senderName: 'Construction Co.',
+        timestamp: '2024-01-20 10:30',
+        type: 'text'
+      },
+      {
+        id: '2',
+        content: 'Thank you for your interest. We can provide high-quality steel pipes at competitive rates.',
+        senderId: 'seller-1',
+        senderName: 'Steel Industries Ltd',
+        timestamp: '2024-01-20 11:15',
+        type: 'text'
+      },
+      {
+        id: '3',
+        content: 'What are your bulk pricing options for 100+ pieces?',
+        senderId: 'buyer-1',
+        senderName: 'Construction Co.',
+        timestamp: '2024-01-20 11:30',
+        type: 'text'
+      },
+      {
+        id: '4',
+        content: 'For 100+ pieces, we can offer Rs. 45,000 per piece with a 5% discount.',
+        senderId: 'seller-1',
+        senderName: 'Steel Industries Ltd',
+        timestamp: '2024-01-20 12:00',
+        type: 'text'
       }
-    })
+    ])
+  }, [])
 
-    newSocket.on('error', (error: { message: string }) => {
-      console.error('Socket error:', error.message)
-    })
-
-    // Fetch RFQ details
-    fetchRFQDetails()
-
-    return () => {
-      newSocket.disconnect()
-    }
-  }, [rfqId, user, isAuthenticated, isLoading, router])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  const fetchRFQDetails = async () => {
-    try {
-      const response = await fetch(`/api/rfqs/${rfqId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setRfqDetails(data)
-      }
-    } catch (error) {
-      console.error('Error fetching RFQ details:', error)
-    }
-  }
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const filteredChats = chats.filter(chat =>
+    chat.rfqTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    chat.counterpartyName.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const handleSendMessage = () => {
-    if (!message.trim() || !socket || !rfqDetails || !user) return
+    if (message.trim() === '') return
 
-    const receiverId = user.id === rfqDetails.buyer.id 
-      ? rfqDetails.seller?.id 
-      : rfqDetails.buyer.id
-
-    if (!receiverId) return
-
-    socket.emit('send_message', {
-      rfqId,
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content: message,
       senderId: user.id,
-      receiverId,
-      messageText: message,
-      timestamp: new Date()
-    })
+      senderName: user.name,
+      timestamp: new Date().toLocaleString(),
+      type: 'text'
+    }
 
+    setMessages([...messages, newMessage])
     setMessage('')
-    setIsTyping(false)
   }
 
-  const handleTyping = () => {
-    if (!isTyping && socket && rfqDetails && user) {
-      setIsTyping(true)
-      socket.emit('typing', { rfqId, userId: user.id })
-      
-      setTimeout(() => {
-        setIsTyping(false)
-        socket?.emit('stop_typing', { rfqId, userId: user.id })
-      }, 1000)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
     }
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !socket || !rfqDetails || !user) return
-
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const arrayBuffer = event.target?.result as ArrayBuffer
-      const buffer = Buffer.from(arrayBuffer)
-
-      const receiverId = user.id === rfqDetails.buyer.id 
-        ? rfqDetails.seller?.id 
-        : rfqDetails.buyer.id
-
-      if (receiverId) {
-        socket.emit('upload_file', {
-          rfqId,
-          senderId: user.id,
-          receiverId,
-          file: buffer,
-          fileName: file.name,
-          fileType: file.type
-        })
-      }
-    }
-    reader.readAsArrayBuffer(file)
-  }
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'OPEN':
-        return <Badge className="bg-blue-100 text-blue-800">Open</Badge>
-      case 'IN_NEGOTIATION':
-        return <Badge className="bg-yellow-100 text-yellow-800">In Negotiation</Badge>
-      case 'APPROVED':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>
-      case 'CLOSED':
-        return <Badge className="bg-gray-100 text-gray-800">Closed</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>
-    }
-  }
-
-  if (loading || !rfqDetails) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
-
-  const otherUser = user.id === rfqDetails.buyer.id ? rfqDetails.seller : rfqDetails.buyer
+  const selectedChatData = chats.find(chat => chat.id === selectedChat)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="mr-4"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-lg font-semibold text-gray-900">{rfqDetails.title}</h1>
-              <p className="text-sm text-gray-500">RFQ #{rfqId.slice(-6)}</p>
-            </div>
-            {getStatusBadge(rfqDetails.status)}
+    <div className="flex h-[calc(100vh-200px)]">
+      {/* Chat List */}
+      <div className="w-80 border-r flex flex-col">
+        <div className="p-4 border-b">
+          <h2 className="text-lg font-semibold mb-3">Messages</h2>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* RFQ Details Sidebar */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">RFQ Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-sm text-gray-500">Description</h4>
-                  <p className="text-sm mt-1">{rfqDetails.description}</p>
-                </div>
-                
-                <Separator />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium text-sm text-gray-500">Quantity</h4>
-                    <p className="text-sm font-medium">{rfqDetails.quantity} {rfqDetails.unit}</p>
+        
+        <div className="flex-1 overflow-y-auto">
+          {filteredChats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`p-4 border-b cursor-pointer hover:bg-gray-50 transition-colors ${
+                selectedChat === chat.id ? 'bg-blue-50 border-blue-200' : ''
+              }`}
+              onClick={() => setSelectedChat(chat.id)}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-sm">{chat.rfqTitle}</h3>
+                    {chat.status === 'active' && (
+                      <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>
+                    )}
                   </div>
-                  {rfqDetails.budget && (
-                    <div>
-                      <h4 className="font-medium text-sm text-gray-500">Budget</h4>
-                      <p className="text-sm font-medium">Rs. {rfqDetails.budget.toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="font-medium text-sm text-gray-500 mb-3">Participants</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarFallback>
-                          {rfqDetails.buyer.name?.charAt(0) || 'B'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{rfqDetails.buyer.name}</p>
-                        <p className="text-xs text-gray-500">Buyer</p>
-                      </div>
-                      {user.id === rfqDetails.buyer.id && (
-                        <Badge className="bg-blue-100 text-blue-800">You</Badge>
-                      )}
-                    </div>
-
-                    {rfqDetails.seller && (
-                      <div className="flex items-center space-x-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarFallback>
-                            {rfqDetails.seller.name?.charAt(0) || 'S'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{rfqDetails.seller.name}</p>
-                          <p className="text-xs text-gray-500">Seller</p>
-                        </div>
-                        {user.id === rfqDetails.seller.id && (
-                          <Badge className="bg-green-100 text-green-800">You</Badge>
-                        )}
+                  <p className="text-sm text-gray-600">{chat.counterpartyName}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Badge variant="outline" className="text-xs">
+                      {chat.counterpartyRole}
+                    </Badge>
+                    {chat.counterpartyRating && (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs">{chat.counterpartyRating}</span>
                       </div>
                     )}
                   </div>
                 </div>
+                {chat.unreadCount > 0 && (
+                  <Badge className="bg-red-500 text-white text-xs">
+                    {chat.unreadCount}
+                  </Badge>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-600 truncate mb-1">
+                {chat.lastMessage}
+              </p>
+              <p className="text-xs text-gray-500">{chat.lastMessageTime}</p>
+            </div>
+          ))}
+        </div>
+      </div>
 
-                <Separator />
-
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start" size="sm">
-                    <Phone className="w-4 h-4 mr-2" />
-                    Call {otherUser?.name}
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" size="sm">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Email {otherUser?.name}
-                  </Button>
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {selectedChatData ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <h3 className="font-semibold">{selectedChatData.rfqTitle}</h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedChatData.counterpartyName} • {selectedChatData.counterpartyRole}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                {selectedChatData.counterpartyRating && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-medium">{selectedChatData.counterpartyRating}</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline">
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Video className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-          {/* Chat Area */}
-          <div className="lg:col-span-3">
-            <Card className="h-[600px] flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>
-                        {otherUser?.name?.charAt(0) || '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <CardTitle className="text-lg">{otherUser?.name}</CardTitle>
-                      <CardDescription>
-                        {otherUserTyping ? 'Typing...' : 'Online'}
-                      </CardDescription>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((msg) => {
+                const isOwnMessage = msg.senderId === user.id
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                        isOwnMessage
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-900'
+                      }`}
+                    >
+                      {!isOwnMessage && (
+                        <div className="text-xs font-medium mb-1">{msg.senderName}</div>
+                      )}
+                      <div className="text-sm">{msg.content}</div>
+                      <div className="text-xs mt-1 opacity-70">
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
+                )
+              })}
+            </div>
 
-              <CardContent className="flex-1 flex flex-col p-0">
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.map((msg) => {
-                    const isOwnMessage = msg.senderId === user.id
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                            isOwnMessage
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-200 text-gray-900'
-                          }`}
-                        >
-                          {msg.messageText && (
-                            <p className="text-sm">{msg.messageText}</p>
-                          )}
-                          {msg.attachments && (
-                            <div className="mt-2">
-                              <p className="text-xs opacity-75 mb-1">📎 Attachment</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs underline"
-                              >
-                                View File
-                              </Button>
-                            </div>
-                          )}
-                          <p className="text-xs opacity-75 mt-1">
-                            {new Date(msg.timestamp).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  <div ref={messagesEndRef} />
+            {/* Message Input */}
+            <div className="p-4 border-t">
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="outline">
+                  <Image className="h-4 w-4" alt="Attach image" />
+                </Button>
+                <div className="flex-1">
+                  <Input
+                    placeholder="Type a message..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="w-full"
+                  />
                 </div>
-
-                {/* Message Input */}
-                <div className="border-t p-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="file"
-                      id="file-upload"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                      accept="image/*,.pdf,.doc,.docx"
-                    />
-                    <label htmlFor="file-upload">
-                      <Button variant="ghost" size="sm" className="cursor-pointer">
-                        <Paperclip className="w-4 h-4" />
-                      </Button>
-                    </label>
-                    
-                    <Input
-                      value={message}
-                      onChange={(e) => {
-                        setMessage(e.target.value)
-                        handleTyping()
-                      }}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSendMessage()
-                        }
-                      }}
-                      placeholder="Type a message..."
-                      className="flex-1"
-                    />
-                    
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!message.trim()}
-                      size="sm"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Button onClick={handleSendMessage} disabled={!message.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <MessageSquare className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
+              <p className="text-gray-600">Choose a chat to start messaging</p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
 }
 
-export default function ProtectedChatPage() {
+export default function ChatPage() {
   return (
     <ProtectedRoute>
-      <ChatPage />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+          <p className="text-gray-600">Communicate with buyers and sellers</p>
+        </div>
+        <ChatContent />
+      </div>
     </ProtectedRoute>
   )
 }
