@@ -119,9 +119,21 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
     if (isAdmin) {
       baseItems.push(
         {
-          title: 'Admin Panel',
-          href: '/admin',
+          title: 'Users',
+          href: '/dashboard/users',
           icon: Users,
+          show: true
+        },
+        {
+          title: 'All Transactions',
+          href: '/dashboard/all-transactions',
+          icon: FileText,
+          show: true
+        },
+        {
+          title: 'Subscriptions',
+          href: '/dashboard/subscriptions',
+          icon: CreditCard,
           show: true
         }
       )

@@ -36,13 +36,12 @@ async function main() {
       phone: '0300-1111111',
       name: 'Admin User',
       passwordHash: await hashPassword('admin123'),
-      roles: UserRole.BOTH,
+      roles: UserRole.ADMIN,
       companyName: 'Marketplace Admin',
       address: 'Admin Office, Karachi',
       city: 'Karachi',
       country: 'Pakistan',
       isApproved: true,
-      isAdmin: true,
     },
   })
 
@@ -73,7 +72,6 @@ async function main() {
       city: 'Lahore',
       country: 'Pakistan',
       isApproved: true,
-      isAdmin: false,
     },
   })
 
@@ -104,7 +102,6 @@ async function main() {
       city: 'Faisalabad',
       country: 'Pakistan',
       isApproved: true,
-      isAdmin: false,
     },
   })
 
@@ -123,7 +120,6 @@ async function main() {
       city: 'Islamabad',
       country: 'Pakistan',
       isApproved: true,
-      isAdmin: false,
     },
   })
 
@@ -154,7 +150,6 @@ async function main() {
       city: 'Karachi',
       country: 'Pakistan',
       isApproved: false, // Pending approval
-      isAdmin: false,
     },
   })
 
@@ -173,7 +168,6 @@ async function main() {
       city: 'Lahore',
       country: 'Pakistan',
       isApproved: false, // Pending approval
-      isAdmin: false,
     },
   })
 
