@@ -2,21 +2,32 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { UserRole } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.isAdmin) {
+    if (!session || session.user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get total users count
-    const totalUsers = await db.user.count()
+    // Get total users count by role
+    const [totalUsers, buyers, sellers, bothUsers] = await Promise.all([
+      db.user.count(),
+      db.user.count({ where: { roles: UserRole.BUYER } }),
+      db.user.count({ where: { roles: UserRole.SELLER } }),
+      db.user.count({ where: { roles: UserRole.BOTH } })
+    ])
 
-    // Get pending approvals count
+    // Get pending approvals count (only sellers and both roles that need approval)
     const pendingApprovals = await db.user.count({
-      where: { isApproved: false }
+      where: { 
+        isApproved: false,
+        roles: {
+          in: [UserRole.SELLER, UserRole.BOTH]
+        }
+      }
     })
 
     // Get active subscriptions count
@@ -85,60 +96,88 @@ export async function GET(request: NextRequest) {
 
     // Get top sellers by revenue
     const topSellers = await db.user.findMany({
-      where: { role: { in: ['SELLER', 'BOTH'] } },
+      where: { 
+        roles: { 
+          in: [UserRole.SELLER, UserRole.BOTH] 
+        },
+        isApproved: true
+      },
       include: {
         sellerTransactions: {
           where: { status: 'COMPLETED' },
-          select: { productPrice: true }
-        }
-      },
-      orderBy: {
-        sellerTransactions: {
-          _sum: { productPrice: 'desc' }
+          select: { productAmount: true }
         }
       },
       take: 10
     })
 
+    // Calculate seller revenue
+    const topSellersWithRevenue = topSellers.map(seller => ({
+      id: seller.id,
+      name: seller.name || seller.email,
+      email: seller.email,
+      companyName: seller.companyName,
+      totalRevenue: seller.sellerTransactions.reduce((sum, t) => sum + (t.productAmount || 0), 0),
+      transactionCount: seller.sellerTransactions.length
+    })).sort((a, b) => b.totalRevenue - a.totalRevenue)
+
     // Get top buyers by spending
     const topBuyers = await db.user.findMany({
-      where: { role: { in: ['BUYER', 'BOTH'] } },
+      where: { 
+        roles: { 
+          in: [UserRole.BUYER, UserRole.BOTH] 
+        },
+        isApproved: true
+      },
       include: {
         buyerTransactions: {
           where: { status: 'COMPLETED' },
           select: { totalAmount: true }
         }
       },
-      orderBy: {
-        buyerTransactions: {
-          _sum: { totalAmount: 'desc' }
-        }
-      },
       take: 10
+    })
+
+    // Calculate buyer spending
+    const topBuyersWithSpending = topBuyers.map(buyer => ({
+      id: buyer.id,
+      name: buyer.name || buyer.email,
+      email: buyer.email,
+      companyName: buyer.companyName,
+      totalSpent: buyer.buyerTransactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0),
+      transactionCount: buyer.buyerTransactions.length
+    })).sort((a, b) => b.totalSpent - a.totalSpent)
+
+    // Get active subscription plans count
+    const activePlans = await db.availablePlan.count({
+      where: { isActive: true }
+    })
+
+    // Get trial subscriptions count
+    const trialSubscriptions = await db.subscription.count({
+      where: { 
+        isTrial: true,
+        status: 'ACTIVE'
+      }
     })
 
     return NextResponse.json({
       totalUsers,
+      buyers,
+      sellers,
+      bothUsers,
       pendingApprovals,
       activeSubscriptions,
       totalTransactions,
       totalRevenue,
       monthlyRevenue,
+      activePlans,
+      trialSubscriptions,
       userGrowth,
       transactionTrends,
       subscriptionDistribution,
-      topSellers: topSellers.map(seller => ({
-        id: seller.id,
-        name: seller.name || seller.email,
-        email: seller.email,
-        totalRevenue: seller.sellerTransactions.reduce((sum, t) => sum + t.productPrice, 0)
-      })),
-      topBuyers: topBuyers.map(buyer => ({
-        id: buyer.id,
-        name: buyer.name || buyer.email,
-        email: buyer.email,
-        totalSpent: buyer.buyerTransactions.reduce((sum, t) => sum + t.totalAmount, 0)
-      }))
+      topSellers: topSellersWithRevenue,
+      topBuyers: topBuyersWithSpending
     })
   } catch (error) {
     console.error('Error fetching admin stats:', error)

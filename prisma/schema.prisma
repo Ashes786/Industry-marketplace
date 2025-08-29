@@ -20,7 +20,7 @@ enum UserRole {
 enum SubscriptionPlan {
   BASIC
   STANDARD
-  PREMIUM
+  ENTERPRISE
 }
 
 enum SubscriptionStatus {
@@ -46,7 +46,7 @@ enum TransactionStatus {
 enum PlanType {
   BASIC
   STANDARD
-  PREMIUM
+  ENTERPRISE
 }
 
 model User {
@@ -78,19 +78,41 @@ model User {
   @@map("users")
 }
 
+model AvailablePlan {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  duration    Int              // in days
+  features    String           // JSON array of features
+  isActive    Boolean          @default(true)
+  isTrial     Boolean          @default(false)
+  trialDays   Int?             // number of trial days if applicable
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@map("available_plans")
+}
+
 model Subscription {
   id          String            @id @default(cuid())
   userId      String
+  planId      String?
   planType    SubscriptionPlan
   startDate   DateTime
   endDate     DateTime
   status      SubscriptionStatus @default(ACTIVE)
   amount      Float
+  isTrial     Boolean          @default(false)
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan AvailablePlan? @relation(fields: [planId], references: [id])
 
   @@map("subscriptions")
 }

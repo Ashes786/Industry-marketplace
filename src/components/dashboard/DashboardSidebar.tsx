@@ -17,9 +17,10 @@ import {
   Search,
   Plus,
   LogOut,
-  Bell,
   User,
-  Building2
+  Building2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -28,9 +29,11 @@ import { Badge } from '@/components/ui/badge'
 interface DashboardSidebarProps {
   user: any
   subscription?: any
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, subscription, collapsed = false, onToggleCollapse }: DashboardSidebarProps) {
   const pathname = usePathname()
   const { logout } = useAuth()
 
@@ -162,47 +165,32 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
   return (
     <div className="flex flex-col h-full bg-white border-r">
       {/* Header */}
-      <div className="p-6 border-b">
-        <div className="flex items-center gap-3">
-          <Building2 className="h-8 w-8 text-blue-600" />
-          <div>
-            <h1 className="text-lg font-semibold">B2B Marketplace</h1>
-            <p className="text-sm text-gray-600">Dashboard</p>
-          </div>
-        </div>
-      </div>
-
-      {/* User Profile */}
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src="/placeholder-avatar.jpg" />
-            <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{user.name}</p>
-            <p className="text-xs text-gray-600 truncate">{user.email}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <Badge variant="secondary" className="text-xs">
-                {user.roles}
-              </Badge>
-              {user.roles === 'ADMIN' && (
-                <Badge variant="outline" className="text-xs">
-                  Admin
-                </Badge>
-              )}
+      <div className={`p-4 border-b flex items-center ${collapsed ? 'justify-center' : 'justify-between'}`}>
+        {!collapsed && (
+          <div className="flex items-center gap-3">
+            <Building2 className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-lg font-semibold">B2B Marketplace</h1>
+              <p className="text-sm text-gray-600">Dashboard</p>
             </div>
           </div>
-        </div>
-        {subscription && (
-          <div className="mt-2 text-xs text-gray-600">
-            Plan: {subscription.planType} • {subscription.status}
-          </div>
+        )}
+        {collapsed ? (
+          <Building2 className="h-6 w-6 text-blue-600" />
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCollapse}
+            className="ml-auto"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-2 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -215,40 +203,34 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900',
+                collapsed && 'justify-center'
               )}
+              title={collapsed ? item.title : undefined}
             >
-              <Icon className="h-4 w-4" />
-              {item.title}
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && item.title}
             </Link>
           )
         })}
       </nav>
 
-      {/* Quick Actions */}
-      <div className="p-4 border-t">
-        <div className="space-y-2">
-          {isBuyer && (
-            <Link href="/dashboard/rfqs/create">
-              <Button className="w-full justify-start" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Create RFQ
-              </Button>
-            </Link>
-          )}
-          {isSeller && (
-            <Link href="/dashboard/products/create">
-              <Button className="w-full justify-start" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </Link>
-          )}
+      {/* Collapse button at bottom */}
+      {collapsed && (
+        <div className="p-2 border-t">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleCollapse}
+            className="w-full justify-center"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
-      </div>
+      )}
 
       {/* Logout */}
-      <div className="p-4 border-t">
+      <div className={`p-2 border-t ${collapsed ? 'hidden' : 'block'}`}>
         <Button
           variant="outline"
           className="w-full justify-start"

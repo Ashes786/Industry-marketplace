@@ -42,8 +42,16 @@ function DashboardContent() {
     return <div>Unknown user role</div>
   }
 
+  // Only pass subscription if user is SELLER or BOTH
+  const getSubscription = () => {
+    if (user.roles === 'SELLER' || user.roles === 'BOTH') {
+      return user.subscription
+    }
+    return undefined
+  }
+
   return (
-    <DashboardLayout user={user} subscription={user.subscription}>
+    <DashboardLayout user={user} subscription={getSubscription()}>
       {renderDashboard()}
     </DashboardLayout>
   )

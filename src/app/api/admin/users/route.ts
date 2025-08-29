@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { UserRole } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || !session.user.isAdmin) {
+    if (!session || session.user.role !== UserRole.ADMIN) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -19,7 +20,11 @@ export async function GET(request: NextRequest) {
     let where: any = {}
 
     if (status === 'pending') {
+      // Only show users that need approval (SELLER and BOTH roles that are not approved)
       where.isApproved = false
+      where.roles = {
+        in: [UserRole.SELLER, UserRole.BOTH]
+      }
     } else if (status === 'approved') {
       where.isApproved = true
     }
@@ -32,10 +37,18 @@ export async function GET(request: NextRequest) {
           email: true,
           name: true,
           phone: true,
-          role: true,
+          roles: true,
+          companyName: true,
           isApproved: true,
-          isAdmin: true,
-          createdAt: true
+          createdAt: true,
+          subscriptions: {
+            select: {
+              planType: true,
+              status: true,
+              endDate: true,
+              isTrial: true
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,

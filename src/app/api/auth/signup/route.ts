@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { db } from '@/lib/db'
-import { UserRole, SubscriptionPlan } from '@prisma/client'
+import { UserRole, SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 import { sendEmail, generateWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
@@ -48,6 +48,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    // Determine if user needs approval
+    const needsApproval = role === 'SELLER' || role === 'BOTH'
+    const isApproved = role === 'BUYER' // Buyers are auto-approved
+
     // Create user
     const user = await db.user.create({
       data: {
@@ -57,31 +61,42 @@ export async function POST(request: NextRequest) {
         passwordHash: hashedPassword,
         companyName,
         roles: role as UserRole,
-        country: 'Pakistan'
+        country: 'Pakistan',
+        isApproved
       }
     })
 
     // If user is a seller or both, create subscription
     if (role === 'SELLER' || role === 'BOTH') {
-      const subscriptionData = {
-        BASIC: { amount: 0, duration: 365 }, // 1 year free for basic
-        STANDARD: { amount: 5000, duration: 30 }, // 1 month
-        PREMIUM: { amount: 12000, duration: 30 } // 1 month
+      // Get the selected plan from available plans
+      const availablePlan = await db.availablePlan.findFirst({
+        where: { 
+          name: sellerPlan,
+          isActive: true
+        }
+      })
+
+      if (!availablePlan) {
+        return NextResponse.json(
+          { error: 'Invalid subscription plan selected' },
+          { status: 400 }
+        )
       }
 
-      const plan = subscriptionData[sellerPlan as keyof typeof subscriptionData]
       const startDate = new Date()
       const endDate = new Date()
-      endDate.setDate(endDate.getDate() + plan.duration)
+      endDate.setDate(endDate.getDate() + availablePlan.duration)
 
       await db.subscription.create({
         data: {
           userId: user.id,
+          planId: availablePlan.id,
           planType: sellerPlan as SubscriptionPlan,
           startDate,
           endDate,
-          status: 'ACTIVE',
-          amount: plan.amount
+          status: SubscriptionStatus.ACTIVE,
+          amount: availablePlan.isTrial ? 0 : availablePlan.price,
+          isTrial: availablePlan.isTrial
         }
       })
     }
@@ -98,7 +113,7 @@ export async function POST(request: NextRequest) {
       await sendEmail({
         to: user.email,
         subject: 'Welcome to Industry Marketplace Pakistan!',
-        html: generateWelcomeEmail(user.name)
+        html: generateWelcomeEmail(user.name, needsApproval)
       })
     } catch (emailError) {
       console.error('Failed to send welcome email:', emailError)
@@ -106,14 +121,18 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'User created successfully',
+      message: needsApproval 
+        ? 'User created successfully. Your account is pending approval.' 
+        : 'User created successfully',
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        roles: user.roles
+        roles: user.roles,
+        isApproved: user.isApproved
       },
-      token
+      token,
+      needsApproval
     })
 
   } catch (error) {

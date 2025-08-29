@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/simple-auth'
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Bell, LogOut } from 'lucide-react'
+import { Menu, Bell, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
@@ -19,6 +19,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, user, subscription, title, subtitle }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { logout } = useAuth()
 
   const handleLogout = () => {
@@ -31,8 +32,13 @@ export function DashboardLayout({ children, user, subscription, title, subtitle 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-64 flex-shrink-0">
-        <DashboardSidebar user={user} subscription={subscription} />
+      <div className={`hidden lg:block ${sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0 transition-all duration-300`}>
+        <DashboardSidebar 
+          user={user} 
+          subscription={subscription} 
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
       </div>
 
       {/* Mobile Sidebar */}
@@ -60,35 +66,34 @@ export function DashboardLayout({ children, user, subscription, title, subtitle 
                 </SheetContent>
               </Sheet>
 
-              <div>
-                <h1 className="text-lg lg:text-xl font-semibold text-gray-900">
+              <div className="min-w-0">
+                <h1 className="text-lg lg:text-xl font-semibold text-gray-900 truncate">
                   {pageTitle}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 truncate">
                   {pageSubtitle}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 lg:gap-4">
-              {/* Notifications - Only show once */}
-              <Button variant="outline" size="sm" className="hidden sm:flex">
-                <Bell className="h-4 w-4 mr-2" />
-                Notifications
-              </Button>
-              <Button variant="outline" size="sm" className="sm:hidden">
+              {/* Notifications */}
+              <Button variant="outline" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                  3
+                </span>
               </Button>
 
               {/* User Profile */}
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:block text-right">
-                  <div className="font-medium text-gray-900">{user.name}</div>
-                  <div className="text-sm text-gray-600">{user.email}</div>
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:block text-right min-w-0">
+                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
+                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
                 </div>
-                <Avatar>
+                <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
               </div>
             </div>
