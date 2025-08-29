@@ -1,5 +1,5 @@
 import { PrismaClient, UserRole, SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -67,9 +67,9 @@ async function main() {
     },
   })
 
-  const enterprisePlan = await prisma.availablePlan.create({
+  const premiumPlan = await prisma.availablePlan.create({
     data: {
-      name: 'ENTERPRISE',
+      name: 'PREMIUM',
       description: 'For large-scale businesses with high volume',
       price: 12000,
       duration: 30,

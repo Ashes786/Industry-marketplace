@@ -29,7 +29,7 @@ export const authOptions = {
           throw new Error('Invalid email or password')
         }
 
-        if (!user.isApproved && user.roles !== 'ADMIN') {
+        if (!user.isApproved && user.roles !== 'ADMIN' && user.roles !== 'BUYER') {
           throw new Error('Account pending approval')
         }
 

@@ -34,14 +34,44 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
   })
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    setStats({
-      totalRfqs: 12,
-      activeRfqs: 3,
-      completedDeals: 9,
-      totalSpent: 2450000
-    })
-  }, [])
+    const fetchBuyerStats = async () => {
+      try {
+        // Fetch user's RFQs
+        const rfqsResponse = await fetch('/api/rfqs')
+        if (rfqsResponse.ok) {
+          const rfqsData = await rfqsResponse.json()
+          
+          // Fetch user's transactions as buyer
+          const transactionsResponse = await fetch('/api/transactions')
+          if (transactionsResponse.ok) {
+            const transactionsData = await transactionsResponse.json()
+            const buyerTransactions = transactionsData.filter((t: any) => t.buyerId === user.id)
+            
+            // Calculate stats from real data
+            setStats({
+              totalRfqs: rfqsData.length,
+              activeRfqs: rfqsData.filter((rfq: any) => rfq.status === 'OPEN').length,
+              completedDeals: buyerTransactions.filter((t: any) => t.status === 'COMPLETED').length,
+              totalSpent: buyerTransactions
+                .filter((t: any) => t.status === 'COMPLETED')
+                .reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0)
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching buyer stats:', error)
+        // Fallback to mock data if API fails
+        setStats({
+          totalRfqs: 0,
+          activeRfqs: 0,
+          completedDeals: 0,
+          totalSpent: 0
+        })
+      }
+    }
+
+    fetchBuyerStats()
+  }, [user.id])
 
   return (
     <div className="space-y-6">
@@ -177,19 +207,23 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">Rs. 2.45M</div>
+              <div className="text-2xl font-bold text-blue-600">Rs. {(stats.totalSpent / 1000000).toFixed(2)}M</div>
               <div className="text-sm text-gray-600 mt-1">Total Spent</div>
-              <div className="text-xs text-green-600 mt-1">+12% vs last month</div>
+              <div className="text-xs text-green-600 mt-1">All time</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">9</div>
+              <div className="text-2xl font-bold text-green-600">{stats.completedDeals}</div>
               <div className="text-sm text-gray-600 mt-1">Deals Closed</div>
-              <div className="text-xs text-green-600 mt-1">75% success rate</div>
+              <div className="text-xs text-green-600 mt-1">
+                {stats.totalRfqs > 0 ? Math.round((stats.completedDeals / stats.totalRfqs) * 100) : 0}% success rate
+              </div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">Rs. 24.5K</div>
+              <div className="text-2xl font-bold text-purple-600">
+                Rs. {stats.completedDeals > 0 ? Math.round(stats.totalSpent / stats.completedDeals).toLocaleString() : 0}
+              </div>
               <div className="text-sm text-gray-600 mt-1">Avg. Deal Size</div>
-              <div className="text-xs text-gray-500 mt-1">Across all categories</div>
+              <div className="text-xs text-gray-500 mt-1">Per transaction</div>
             </div>
           </div>
           

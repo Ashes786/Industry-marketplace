@@ -13,22 +13,13 @@ export async function POST(request: NextRequest) {
       phone,
       password,
       companyName,
-      role,
-      sellerPlan
+      role
     } = body
 
     // Validate required fields
     if (!name || !email || !phone || !password || !role) {
       return NextResponse.json(
         { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    // For seller or both roles, sellerPlan is required
-    if ((role === 'SELLER' || role === 'BOTH') && !sellerPlan) {
-      return NextResponse.json(
-        { error: 'sellerPlan is required for seller accounts' },
         { status: 400 }
       )
     }
@@ -66,39 +57,35 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // If user is a seller or both, create subscription
+    // If user is a seller or both, automatically create STANDARD trial subscription
     if (role === 'SELLER' || role === 'BOTH') {
-      // Get the selected plan from available plans
-      const availablePlan = await db.availablePlan.findFirst({
+      // Get the STANDARD trial plan
+      const standardPlan = await db.availablePlan.findFirst({
         where: { 
-          name: sellerPlan,
-          isActive: true
+          name: 'STANDARD',
+          isActive: true,
+          isTrial: true
         }
       })
 
-      if (!availablePlan) {
-        return NextResponse.json(
-          { error: 'Invalid subscription plan selected' },
-          { status: 400 }
-        )
+      if (standardPlan) {
+        const startDate = new Date()
+        const endDate = new Date()
+        endDate.setDate(endDate.getDate() + standardPlan.trialDays || 30)
+
+        await db.subscription.create({
+          data: {
+            userId: user.id,
+            planId: standardPlan.id,
+            planType: SubscriptionPlan.STANDARD,
+            startDate,
+            endDate,
+            status: SubscriptionStatus.ACTIVE,
+            amount: 0,
+            isTrial: true
+          }
+        })
       }
-
-      const startDate = new Date()
-      const endDate = new Date()
-      endDate.setDate(endDate.getDate() + availablePlan.duration)
-
-      await db.subscription.create({
-        data: {
-          userId: user.id,
-          planId: availablePlan.id,
-          planType: sellerPlan as SubscriptionPlan,
-          startDate,
-          endDate,
-          status: SubscriptionStatus.ACTIVE,
-          amount: availablePlan.isTrial ? 0 : availablePlan.price,
-          isTrial: availablePlan.isTrial
-        }
-      })
     }
 
     // Create JWT token (simplified - in production use proper JWT library)

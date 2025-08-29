@@ -39,16 +39,49 @@ export function SellerDashboard({ user, subscription }: SellerDashboardProps) {
   })
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    setStats({
-      totalProducts: 15,
-      activeProducts: 12,
-      totalViews: 2450,
-      rfqsReceived: 8,
-      dealsClosed: 5,
-      revenue: 1850000
-    })
-  }, [])
+    const fetchSellerStats = async () => {
+      try {
+        // Fetch user's products
+        const productsResponse = await fetch('/api/products/my')
+        if (productsResponse.ok) {
+          const productsData = await productsResponse.json()
+          const activeProducts = productsData.filter((p: any) => p.isActive)
+          
+          // Fetch user's transactions as seller
+          const transactionsResponse = await fetch('/api/transactions')
+          if (transactionsResponse.ok) {
+            const transactionsData = await transactionsResponse.json()
+            const sellerTransactions = transactionsData.filter((t: any) => t.sellerId === user.id)
+            
+            // Calculate stats from real data
+            setStats({
+              totalProducts: productsData.length,
+              activeProducts: activeProducts.length,
+              totalViews: activeProducts.reduce((sum: number, p: any) => sum + (p.views || 0), 0),
+              rfqsReceived: 0, // TODO: Fetch RFQs addressed to this seller
+              dealsClosed: sellerTransactions.filter((t: any) => t.status === 'COMPLETED').length,
+              revenue: sellerTransactions
+                .filter((t: any) => t.status === 'COMPLETED')
+                .reduce((sum: number, t: any) => sum + (t.productAmount || 0), 0)
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching seller stats:', error)
+        // Fallback to mock data if API fails
+        setStats({
+          totalProducts: 0,
+          activeProducts: 0,
+          totalViews: 0,
+          rfqsReceived: 0,
+          dealsClosed: 0,
+          revenue: 0
+        })
+      }
+    }
+
+    fetchSellerStats()
+  }, [user.id])
 
   const getPlanLimits = (planType: string) => {
     switch (planType) {

@@ -49,139 +49,121 @@ import {
   CreditCard
 } from 'lucide-react'
 
-// Mock data for demonstration
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Ahmed Khan',
-    email: 'ahmed@example.com',
-    phone: '03001234567',
-    roles: 'BUYER',
-    companyName: 'Construction Co.',
-    isApproved: true,
-    createdAt: '2024-01-15',
-    lastLogin: '2024-01-20'
-  },
-  {
-    id: '2',
-    name: 'Fatima Ali',
-    email: 'fatima@example.com',
-    phone: '03001234568',
-    roles: 'SELLER',
-    companyName: 'Textile Mills',
-    isApproved: true,
-    createdAt: '2024-01-10',
-    lastLogin: '2024-01-19'
-  },
-  {
-    id: '3',
-    name: 'Muhammad Raza',
-    email: 'raza@example.com',
-    phone: '03001234569',
-    roles: 'BOTH',
-    companyName: 'Industrial Solutions',
-    isApproved: false,
-    createdAt: '2024-01-18',
-    lastLogin: '2024-01-18'
-  }
-]
-
-const mockSubscriptions = [
-  {
-    id: '1',
-    userName: 'Fatima Ali',
-    userEmail: 'fatima@example.com',
-    planType: 'STANDARD',
-    amount: 5000,
-    startDate: '2024-01-01',
-    endDate: '2024-02-01',
-    status: 'ACTIVE'
-  },
-  {
-    id: '2',
-    userName: 'Muhammad Raza',
-    userEmail: 'raza@example.com',
-    planType: 'BASIC',
-    amount: 0,
-    startDate: '2024-01-15',
-    endDate: '2025-01-15',
-    status: 'ACTIVE'
-  }
-]
-
-const mockTransactions = [
-  {
-    id: '1',
-    buyerName: 'Ahmed Khan',
-    sellerName: 'Fatima Ali',
-    amount: 450000,
-    commission: 9000,
-    status: 'COMPLETED',
-    date: '2024-01-15',
-    paymentMethod: 'Bank Transfer'
-  },
-  {
-    id: '2',
-    buyerName: 'Ahmed Khan',
-    sellerName: 'Steel Industries',
-    amount: 190000,
-    commission: 3800,
-    status: 'PAID',
-    date: '2024-01-10',
-    paymentMethod: 'JazzCash'
-  },
-  {
-    id: '3',
-    buyerName: 'Construction Co.',
-    sellerName: 'Muhammad Raza',
-    amount: 350000,
-    commission: 7000,
-    status: 'PENDING',
-    date: '2024-01-20',
-    paymentMethod: 'EasyPaisa'
-  }
-]
-
-const mockAnalytics = {
-  totalUsers: 156,
-  activeUsers: 89,
-  totalSellers: 67,
-  totalBuyers: 124,
-  monthlyRevenue: 2840000,
-  totalTransactions: 342,
-  commissionRevenue: 156000,
-  pendingApprovals: 3,
-  activeSubscriptions: 45
+interface User {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  roles: string
+  companyName?: string
+  isApproved: boolean
+  createdAt: string
+  lastLogin?: string
 }
 
-const mockRecentActivity = [
-  {
-    id: '1',
-    action: 'New User Registration',
-    user: 'Muhammad Raza',
-    details: 'Registered as SELLER',
-    timestamp: '2 hours ago'
-  },
-  {
-    id: '2',
-    action: 'Payment Completed',
-    user: 'Ahmed Khan',
-    details: 'Transaction #123 completed',
-    timestamp: '5 hours ago'
-  },
-  {
-    id: '3',
-    action: 'Subscription Upgraded',
-    user: 'Fatima Ali',
-    details: 'Upgraded to STANDARD plan',
-    timestamp: '1 day ago'
-  }
-]
+interface Subscription {
+  id: string
+  userName: string
+  userEmail: string
+  planType: string
+  amount: number
+  startDate: string
+  endDate: string
+  status: string
+}
+
+interface Transaction {
+  id: string
+  buyerName: string
+  sellerName: string
+  amount: number
+  commission: number
+  status: string
+  date: string
+  paymentMethod?: string
+}
+
+interface Analytics {
+  totalUsers: number
+  activeUsers: number
+  totalSellers: number
+  totalBuyers: number
+  monthlyRevenue: number
+  totalTransactions: number
+  commissionRevenue: number
+  pendingApprovals: number
+  activeSubscriptions: number
+}
+
+interface Activity {
+  id: string
+  action: string
+  user: string
+  details: string
+  timestamp: string
+}
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [users, setUsers] = useState<User[]>([])
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch analytics data
+      const analyticsResponse = await fetch('/api/admin/stats')
+      if (analyticsResponse.ok) {
+        const analyticsData = await analyticsResponse.json()
+        setAnalytics({
+          totalUsers: analyticsData.totalUsers,
+          activeUsers: analyticsData.totalUsers - analyticsData.pendingApprovals,
+          totalSellers: analyticsData.sellers,
+          totalBuyers: analyticsData.buyers,
+          monthlyRevenue: analyticsData.monthlyRevenue,
+          totalTransactions: analyticsData.totalTransactions,
+          commissionRevenue: analyticsData.totalRevenue,
+          pendingApprovals: analyticsData.pendingApprovals,
+          activeSubscriptions: analyticsData.activeSubscriptions
+        })
+      }
+
+      // Fetch users data
+      const usersResponse = await fetch('/api/admin/users')
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json()
+        setUsers(usersData.users || [])
+      }
+
+      // Fetch subscriptions data
+      const subscriptionsResponse = await fetch('/api/admin/subscriptions')
+      if (subscriptionsResponse.ok) {
+        const subscriptionsData = await subscriptionsResponse.json()
+        setSubscriptions(subscriptionsData.subscriptions || [])
+      }
+
+      // Fetch transactions data
+      const transactionsResponse = await fetch('/api/admin/transactions')
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json()
+        setTransactions(transactionsData.transactions || [])
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -205,15 +187,40 @@ export default function AdminPanel() {
   }
 
   const handleUserApproval = async (userId: string, approve: boolean) => {
-    console.log(`${approve ? 'Approving' : 'Rejecting'} user: ${userId}`)
-    // TODO: Implement user approval/rejection API call
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/${approve ? 'approve' : 'reject'}`, {
+        method: 'POST'
+      })
+      
+      if (response.ok) {
+        // Refresh users data
+        const usersResponse = await fetch('/api/admin/users')
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json()
+          setUsers(usersData.users || [])
+        }
+      }
+    } catch (error) {
+      console.error('Error updating user approval:', error)
+    }
   }
 
-  const filteredUsers = mockUsers.filter(user =>
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-50 items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading admin panel...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <SidebarProvider>
@@ -258,9 +265,9 @@ export default function AdminPanel() {
                       >
                         <Users className="h-4 w-4" />
                         <span>Users</span>
-                        {mockUsers.filter(u => !u.isApproved).length > 0 && (
+                        {users.filter(u => !u.isApproved).length > 0 && (
                           <Badge className="ml-auto bg-red-500 text-white">
-                            {mockUsers.filter(u => !u.isApproved).length}
+                            {users.filter(u => !u.isApproved).length}
                           </Badge>
                         )}
                       </button>
@@ -386,8 +393,8 @@ export default function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500">Total Users</p>
-                          <p className="text-2xl font-bold">{mockAnalytics.totalUsers}</p>
-                          <p className="text-sm text-green-600">{mockAnalytics.activeUsers} active</p>
+                          <p className="text-2xl font-bold">{analytics?.totalUsers || 0}</p>
+                          <p className="text-sm text-green-600">{analytics?.activeUsers || 0} active</p>
                         </div>
                         <Users className="h-8 w-8 text-blue-600" />
                       </div>
@@ -399,7 +406,7 @@ export default function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500">Monthly Revenue</p>
-                          <p className="text-2xl font-bold">Rs. {(mockAnalytics.monthlyRevenue / 1000000).toFixed(1)}M</p>
+                          <p className="text-2xl font-bold">Rs. {((analytics?.monthlyRevenue || 0) / 1000000).toFixed(1)}M</p>
                           <p className="text-sm text-green-600">+12.5%</p>
                         </div>
                         <DollarSign className="h-8 w-8 text-green-600" />
@@ -412,7 +419,7 @@ export default function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500">Total Transactions</p>
-                          <p className="text-2xl font-bold">{mockAnalytics.totalTransactions}</p>
+                          <p className="text-2xl font-bold">{analytics?.totalTransactions || 0}</p>
                           <p className="text-sm text-green-600">+8.2%</p>
                         </div>
                         <CreditCard className="h-8 w-8 text-purple-600" />
@@ -425,7 +432,7 @@ export default function AdminPanel() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-500">Commission Revenue</p>
-                          <p className="text-2xl font-bold">Rs. {(mockAnalytics.commissionRevenue / 1000).toFixed(0)}K</p>
+                          <p className="text-2xl font-bold">Rs. {((analytics?.commissionRevenue || 0) / 1000).toFixed(0)}K</p>
                           <p className="text-sm text-green-600">+15.3%</p>
                         </div>
                         <TrendingUp className="h-8 w-8 text-orange-600" />
@@ -442,7 +449,7 @@ export default function AdminPanel() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {mockRecentActivity.map((activity) => (
+                        {recentActivity.map((activity) => (
                           <div key={activity.id} className="flex items-center gap-3">
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                             <div className="flex-1">
@@ -458,34 +465,34 @@ export default function AdminPanel() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Pending Approvals</CardTitle>
+                      <CardTitle>Quick Stats</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {mockUsers.filter(u => !u.isApproved).map((user) => (
-                          <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div>
-                              <p className="font-medium">{user.name}</p>
-                              <p className="text-sm text-gray-500">{user.email}</p>
-                              <Badge className={getRoleColor(user.roles)}>{user.roles}</Badge>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button 
-                                size="sm" 
-                                onClick={() => handleUserApproval(user.id, true)}
-                              >
-                                <UserCheck className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleUserApproval(user.id, false)}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Pending Approvals</span>
+                          <Badge className="bg-yellow-100 text-yellow-800">
+                            {analytics?.pendingApprovals || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Active Subscriptions</span>
+                          <Badge className="bg-green-100 text-green-800">
+                            {analytics?.activeSubscriptions || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Total Sellers</span>
+                          <Badge className="bg-blue-100 text-blue-800">
+                            {analytics?.totalSellers || 0}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Total Buyers</span>
+                          <Badge className="bg-purple-100 text-purple-800">
+                            {analytics?.totalBuyers || 0}
+                          </Badge>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -495,9 +502,9 @@ export default function AdminPanel() {
 
             {activeTab === 'users' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">User Management</h3>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
@@ -515,12 +522,16 @@ export default function AdminPanel() {
                 </div>
 
                 <Card>
-                  <CardContent className="p-0">
+                  <CardHeader>
+                    <CardTitle>All Users</CardTitle>
+                    <CardDescription>Manage user accounts and approvals</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Contact</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Company</TableHead>
                           <TableHead>Status</TableHead>
@@ -538,60 +549,47 @@ export default function AdminPanel() {
                                 </Avatar>
                                 <div>
                                   <p className="font-medium">{user.name}</p>
-                                  <p className="text-sm text-gray-500">{user.email}</p>
+                                  <p className="text-sm text-gray-500">{user.phone}</p>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell>
-                              <p className="text-sm">{user.phone}</p>
-                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
                             <TableCell>
                               <Badge className={getRoleColor(user.roles)}>
                                 {user.roles}
                               </Badge>
                             </TableCell>
+                            <TableCell>{user.companyName || '-'}</TableCell>
                             <TableCell>
-                              <p className="text-sm">{user.companyName || '-'}</p>
+                              <Badge className={user.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                                {user.isApproved ? 'Approved' : 'Pending'}
+                              </Badge>
                             </TableCell>
+                            <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                {user.isApproved ? (
-                                  <Badge className="bg-green-100 text-green-800">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Approved
-                                  </Badge>
-                                ) : (
-                                  <Badge className="bg-yellow-100 text-yellow-800">
-                                    <Clock className="h-3 w-3 mr-1" />
-                                    Pending
-                                  </Badge>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <p className="text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
                                 {!user.isApproved && (
                                   <>
-                                    <Button 
-                                      size="sm" 
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
                                       onClick={() => handleUserApproval(user.id, true)}
                                     >
-                                      <UserCheck className="h-4 w-4" />
+                                      <UserCheck className="h-4 w-4 mr-1" />
+                                      Approve
                                     </Button>
-                                    <Button 
-                                      size="sm" 
+                                    <Button
                                       variant="outline"
+                                      size="sm"
                                       onClick={() => handleUserApproval(user.id, false)}
                                     >
-                                      <UserX className="h-4 w-4" />
+                                      <UserX className="h-4 w-4 mr-1" />
+                                      Reject
                                     </Button>
                                   </>
                                 )}
-                                <Button size="sm" variant="outline">
-                                  <Eye className="h-4 w-4" />
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -609,20 +607,25 @@ export default function AdminPanel() {
                 <h3 className="text-lg font-semibold">Subscription Management</h3>
                 
                 <Card>
-                  <CardContent className="p-0">
+                  <CardHeader>
+                    <CardTitle>All Subscriptions</CardTitle>
+                    <CardDescription>Manage user subscriptions and plans</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>User</TableHead>
                           <TableHead>Plan</TableHead>
                           <TableHead>Amount</TableHead>
-                          <TableHead>Period</TableHead>
+                          <TableHead>Start Date</TableHead>
+                          <TableHead>End Date</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mockSubscriptions.map((subscription) => (
+                        {subscriptions.map((subscription) => (
                           <TableRow key={subscription.id}>
                             <TableCell>
                               <div>
@@ -631,36 +634,22 @@ export default function AdminPanel() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge className={
-                                subscription.planType === 'BASIC' ? 'bg-gray-100 text-gray-800' :
-                                subscription.planType === 'STANDARD' ? 'bg-blue-100 text-blue-800' :
-                                'bg-purple-100 text-purple-800'
-                              }>
+                              <Badge className={getRoleColor(subscription.planType)}>
                                 {subscription.planType}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              <p className="font-medium">Rs. {subscription.amount.toLocaleString()}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="text-sm">
-                                {new Date(subscription.startDate).toLocaleDateString()} - {new Date(subscription.endDate).toLocaleDateString()}
-                              </p>
-                            </TableCell>
+                            <TableCell>Rs. {subscription.amount.toLocaleString()}</TableCell>
+                            <TableCell>{new Date(subscription.startDate).toLocaleDateString()}</TableCell>
+                            <TableCell>{new Date(subscription.endDate).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <Badge className={getStatusColor(subscription.status)}>
                                 {subscription.status}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="outline">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -676,11 +665,14 @@ export default function AdminPanel() {
                 <h3 className="text-lg font-semibold">Transaction Management</h3>
                 
                 <Card>
-                  <CardContent className="p-0">
+                  <CardHeader>
+                    <CardTitle>All Transactions</CardTitle>
+                    <CardDescription>View and manage all transactions</CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Transaction ID</TableHead>
                           <TableHead>Buyer</TableHead>
                           <TableHead>Seller</TableHead>
                           <TableHead>Amount</TableHead>
@@ -692,43 +684,23 @@ export default function AdminPanel() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {mockTransactions.map((transaction) => (
+                        {transactions.map((transaction) => (
                           <TableRow key={transaction.id}>
-                            <TableCell>
-                              <p className="font-medium">#{transaction.id}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-medium">{transaction.buyerName}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-medium">{transaction.sellerName}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-medium">Rs. {transaction.amount.toLocaleString()}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="font-medium">Rs. {transaction.commission.toLocaleString()}</p>
-                            </TableCell>
+                            <TableCell className="font-medium">{transaction.buyerName}</TableCell>
+                            <TableCell>{transaction.sellerName}</TableCell>
+                            <TableCell>Rs. {transaction.amount.toLocaleString()}</TableCell>
+                            <TableCell>Rs. {transaction.commission.toLocaleString()}</TableCell>
                             <TableCell>
                               <Badge className={getStatusColor(transaction.status)}>
                                 {transaction.status}
                               </Badge>
                             </TableCell>
+                            <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
+                            <TableCell>{transaction.paymentMethod || '-'}</TableCell>
                             <TableCell>
-                              <p className="text-sm">{new Date(transaction.date).toLocaleDateString()}</p>
-                            </TableCell>
-                            <TableCell>
-                              <p className="text-sm">{transaction.paymentMethod}</p>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button size="sm" variant="outline">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <FileText className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -743,55 +715,55 @@ export default function AdminPanel() {
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold">Analytics & Reports</h3>
                 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Revenue Overview</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Total Revenue</span>
-                          <span className="font-medium">Rs. {mockAnalytics.monthlyRevenue.toLocaleString()}</span>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Users</p>
+                          <p className="text-2xl font-bold">{analytics?.totalUsers || 0}</p>
+                          <p className="text-sm text-green-600">{analytics?.activeUsers || 0} active</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Commission Revenue</span>
-                          <span className="font-medium">Rs. {mockAnalytics.commissionRevenue.toLocaleString()}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Total Transactions</span>
-                          <span className="font-medium">{mockAnalytics.totalTransactions}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Active Subscriptions</span>
-                          <span className="font-medium">{mockAnalytics.activeSubscriptions}</span>
-                        </div>
+                        <Users className="h-8 w-8 text-blue-600" />
                       </div>
                     </CardContent>
                   </Card>
-
+                  
                   <Card>
-                    <CardHeader>
-                      <CardTitle>User Statistics</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Total Users</span>
-                          <span className="font-medium">{mockAnalytics.totalUsers}</span>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Monthly Revenue</p>
+                          <p className="text-2xl font-bold">Rs. {((analytics?.monthlyRevenue || 0) / 1000000).toFixed(1)}M</p>
+                          <p className="text-sm text-green-600">+12.5%</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Active Users</span>
-                          <span className="font-medium">{mockAnalytics.activeUsers}</span>
+                        <DollarSign className="h-8 w-8 text-green-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Total Transactions</p>
+                          <p className="text-2xl font-bold">{analytics?.totalTransactions || 0}</p>
+                          <p className="text-sm text-green-600">+8.2%</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Total Sellers</span>
-                          <span className="font-medium">{mockAnalytics.totalSellers}</span>
+                        <CreditCard className="h-8 w-8 text-purple-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">Commission Revenue</p>
+                          <p className="text-2xl font-bold">Rs. {((analytics?.commissionRevenue || 0) / 1000).toFixed(0)}K</p>
+                          <p className="text-sm text-green-600">+15.3%</p>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Total Buyers</span>
-                          <span className="font-medium">{mockAnalytics.totalBuyers}</span>
-                        </div>
+                        <TrendingUp className="h-8 w-8 text-orange-600" />
                       </div>
                     </CardContent>
                   </Card>
@@ -799,22 +771,46 @@ export default function AdminPanel() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Generate Reports</CardTitle>
+                    <CardTitle>System Overview</CardTitle>
+                    <CardDescription>Key system metrics and performance indicators</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <Button variant="outline" className="h-20 flex-col">
-                        <FileText className="h-6 w-6 mb-2" />
-                        User Report
-                      </Button>
-                      <Button variant="outline" className="h-20 flex-col">
-                        <DollarSign className="h-6 w-6 mb-2" />
-                        Revenue Report
-                      </Button>
-                      <Button variant="outline" className="h-20 flex-col">
-                        <TrendingUp className="h-6 w-6 mb-2" />
-                        Analytics Report
-                      </Button>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">User Distribution</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Buyers</span>
+                            <span className="text-sm font-medium">{analytics?.totalBuyers || 0}</span>
+                          </div>
+                          <Progress value={(analytics?.totalBuyers || 0) / (analytics?.totalUsers || 1) * 100} />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Sellers</span>
+                            <span className="text-sm font-medium">{analytics?.totalSellers || 0}</span>
+                          </div>
+                          <Progress value={(analytics?.totalSellers || 0) / (analytics?.totalUsers || 1) * 100} />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium">System Health</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Active Subscriptions</span>
+                            <span className="text-sm font-medium">{analytics?.activeSubscriptions || 0}</span>
+                          </div>
+                          <Progress value={90} />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Pending Approvals</span>
+                            <span className="text-sm font-medium">{analytics?.pendingApprovals || 0}</span>
+                          </div>
+                          <Progress value={100 - ((analytics?.pendingApprovals || 0) / (analytics?.totalUsers || 1) * 100)} />
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

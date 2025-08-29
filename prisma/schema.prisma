@@ -20,7 +20,7 @@ enum UserRole {
 enum SubscriptionPlan {
   BASIC
   STANDARD
-  ENTERPRISE
+  PREMIUM
 }
 
 enum SubscriptionStatus {
@@ -46,7 +46,7 @@ enum TransactionStatus {
 enum PlanType {
   BASIC
   STANDARD
-  ENTERPRISE
+  PREMIUM
 }
 
 model User {

@@ -19,7 +19,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     role: 'BUYER',
-    plan: 'BASIC'
+    plan: 'STANDARD' // Default to STANDARD for sellers
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -49,8 +49,7 @@ export default function SignUpPage() {
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
-          role: formData.role,
-          plan: formData.role === 'BUYER' ? undefined : formData.plan
+          role: formData.role
         })
       })
 
@@ -90,8 +89,7 @@ export default function SignUpPage() {
   }
 
   const planPricing = {
-    BASIC: { price: 'Free', description: 'Perfect for getting started' },
-    STANDARD: { price: 'Rs. 5,000/month', description: 'For growing businesses' },
+    STANDARD: { price: '1-month Free Trial', description: 'Perfect for growing businesses' },
     PREMIUM: { price: 'Rs. 12,000/month', description: 'For established businesses' }
   }
 
@@ -265,24 +263,17 @@ export default function SignUpPage() {
                     <Label className="text-sm font-medium text-gray-700">
                       Subscription Plan
                     </Label>
-                    <Select
-                      value={formData.plan}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, plan: value }))}
-                    >
-                      <SelectTrigger className="h-11 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select a plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(planPricing).map(([plan, config]) => (
-                          <SelectItem key={plan} value={plan}>
-                            <div>
-                              <div className="font-medium">{plan}</div>
-                              <div className="text-sm text-gray-500">{config.price} - {config.description}</div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <div className="font-medium text-blue-900">1-Month STANDARD Trial</div>
+                          <div className="text-sm text-blue-700">
+                            You'll automatically get a 1-month free trial of our STANDARD plan. After the trial, you can upgrade to PREMIUM or continue with BASIC features.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
