@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth, ProtectedRoute } from '@/lib/simple-auth'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,13 +71,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600">Manage your account settings and preferences</p>
-      </div>
-
+    <DashboardLayout user={user} title="Settings" subtitle="Manage your account settings and preferences">
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Settings */}
         <div className="lg:col-span-2 space-y-6">
@@ -289,7 +284,7 @@ function SettingsContent() {
                     {user?.isApproved ? 'Approved' : 'Pending'}
                   </Badge>
                 </div>
-                {user?.isAdmin && (
+                {user?.roles === 'ADMIN' && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Admin:</span>
                     <Badge className="bg-purple-100 text-purple-800">Yes</Badge>
@@ -348,7 +343,7 @@ function SettingsContent() {
           </Card>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
 

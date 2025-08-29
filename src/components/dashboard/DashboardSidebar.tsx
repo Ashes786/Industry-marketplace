@@ -244,10 +244,6 @@ export function DashboardSidebar({ user, subscription }: DashboardSidebarProps) 
               </Button>
             </Link>
           )}
-          <Button variant="outline" className="w-full justify-start" size="sm">
-            <Bell className="h-4 w-4 mr-2" />
-            Notifications
-          </Button>
         </div>
       </div>
 
