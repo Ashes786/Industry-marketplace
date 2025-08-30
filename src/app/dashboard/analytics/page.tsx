@@ -20,6 +20,21 @@ import {
   Activity
 } from 'lucide-react'
 import Link from 'next/link'
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart as RechartsPieChart,
+  Cell,
+  Pie
+} from 'recharts'
 
 interface AnalyticsProps {
   user: any
@@ -31,6 +46,8 @@ interface AnalyticsData {
   totalTransactions: number
   totalRevenue: number
   monthlyGrowth: number
+  userGrowthData: Array<{ month: string; users: number }>
+  revenueData: Array<{ month: string; revenue: number }>
   topProducts: Array<{
     id: string
     title: string
@@ -65,7 +82,7 @@ export default function AnalyticsPage({ user }: AnalyticsProps) {
       
       // Transform API data to match the expected interface
       const transformedData: AnalyticsData = {
-        totalViews: data.totalUsers * 100 + Math.floor(Math.random() * 5000), // Mock views based on users
+        totalViews: data.totalUsers * 100 || 0, // Mock views based on users
         totalProducts: user.roles === 'SELLER' || user.roles === 'BOTH' ? 
           Math.floor(Math.random() * 20) + 5 : 0, // Mock product count
         totalTransactions: data.totalTransactions || 0,
@@ -73,6 +90,8 @@ export default function AnalyticsPage({ user }: AnalyticsProps) {
           (data.topSellers?.[0]?.totalRevenue || 0) : 
           (data.topBuyers?.[0]?.totalSpent || 0),
         monthlyGrowth: data.monthlyRevenue > 0 ? 12.5 : 0, // Calculate growth based on revenue
+        userGrowthData: data.userGrowth || [], // Use real data if available
+        revenueData: data.transactionTrends || [], // Use real data if available
         topProducts: [
           {
             id: '1',
@@ -120,58 +139,20 @@ export default function AnalyticsPage({ user }: AnalyticsProps) {
       setAnalytics(transformedData)
     } catch (error) {
       console.error('Error fetching analytics:', error)
-      // Fallback to mock data if API fails
-      const mockData: AnalyticsData = {
-        totalViews: 15420,
-        totalProducts: user.roles === 'SELLER' || user.roles === 'BOTH' ? 12 : 0,
-        totalTransactions: 28,
-        totalRevenue: user.roles === 'SELLER' || user.roles === 'BOTH' ? 2840000 : 156000,
-        monthlyGrowth: 12.5,
-        topProducts: [
-          {
-            id: '1',
-            title: 'Industrial Steel Pipes',
-            views: 3420,
-            sales: 15,
-            revenue: 750000
-          },
-          {
-            id: '2',
-            title: 'Electrical Cables',
-            views: 2150,
-            sales: 8,
-            revenue: 320000
-          },
-          {
-            id: '3',
-            title: 'Construction Materials',
-            views: 1890,
-            sales: 5,
-            revenue: 180000
-          }
-        ],
-        recentActivity: [
-          {
-            type: 'sale',
-            description: 'New order for Industrial Steel Pipes',
-            timestamp: '2 hours ago',
-            amount: 45000
-          },
-          {
-            type: 'view',
-            description: 'Product view spike on Electrical Cables',
-            timestamp: '5 hours ago'
-          },
-          {
-            type: 'commission',
-            description: 'Commission earned from transaction',
-            timestamp: '1 day ago',
-            amount: 900
-          }
-        ]
+      // Fallback to empty data if API fails
+      const emptyData: AnalyticsData = {
+        totalViews: 0,
+        totalProducts: 0,
+        totalTransactions: 0,
+        totalRevenue: 0,
+        monthlyGrowth: 0,
+        userGrowthData: [],
+        revenueData: [],
+        topProducts: [],
+        recentActivity: []
       }
       
-      setAnalytics(mockData)
+      setAnalytics(emptyData)
     } finally {
       setLoading(false)
     }
@@ -323,6 +304,69 @@ export default function AnalyticsPage({ user }: AnalyticsProps) {
         </div>
 
         {/* Charts Section */}
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
+          {/* User Growth Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                User Growth Trend
+              </CardTitle>
+              <CardDescription>
+                Monthly user registration growth over the last 6 months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={analytics.userGrowthData || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} />
+                </LineChart>
+              </ResponsiveContainer>
+              {(!analytics.userGrowthData || analytics.userGrowthData.length === 0) && (
+                <div className="text-center text-gray-500 mt-4">
+                  No user growth data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Revenue Trend Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Revenue Trend
+              </CardTitle>
+              <CardDescription>
+                Monthly revenue trends over the last 6 months
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analytics.revenueData || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="revenue" fill="#10b981" />
+                </BarChart>
+              </ResponsiveContainer>
+              {(!analytics.revenueData || analytics.revenueData.length === 0) && (
+                <div className="text-center text-gray-500 mt-4">
+                  No revenue data available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Additional Charts Section */}
         <div className="grid lg:grid-cols-2 gap-8 mb-8">
           {/* Top Products */}
           <Card>

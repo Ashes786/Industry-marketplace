@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { requireAdmin } from '@/lib/admin-auth'
 import { db } from '@/lib/db'
 import { UserRole } from '@prisma/client'
 
@@ -9,12 +8,8 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const adminUser = await requireAdmin(request)
     
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const userId = params.id
 
     // Get user details before deletion for logging
@@ -40,7 +35,7 @@ export async function POST(
     // Log admin action
     await db.adminLog.create({
       data: {
-        adminId: session.user.id,
+        adminId: adminUser.id,
         action: 'REJECT_USER',
         targetUserId: userId,
         details: `Rejected and deleted user: ${user.email} (${user.roles})`

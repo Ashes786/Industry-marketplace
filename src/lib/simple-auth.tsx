@@ -139,6 +139,24 @@ export function useAuth() {
   return context
 }
 
+export function getAuthToken() {
+  if (typeof window !== 'undefined') {
+    const user = localStorage.getItem('user')
+    if (user) {
+      const parsedUser = JSON.parse(user)
+      // Create token from user data (same as login response)
+      const token = Buffer.from(JSON.stringify({
+        userId: parsedUser.id,
+        email: parsedUser.email,
+        role: parsedUser.roles,
+        isAdmin: parsedUser.isAdmin
+      })).toString('base64')
+      return token
+    }
+  }
+  return null
+}
+
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, isLoading, authError, isAuthenticated } = useAuth()
   const router = useRouter()

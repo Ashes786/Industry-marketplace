@@ -48,6 +48,7 @@ import {
   UserX,
   CreditCard
 } from 'lucide-react'
+import { getAuthToken } from '@/lib/simple-auth'
 
 interface User {
   id: string
@@ -61,15 +62,15 @@ interface User {
   lastLogin?: string
 }
 
-interface Subscription {
+interface SubscriptionPlan {
   id: string
-  userName: string
-  userEmail: string
-  planType: string
-  amount: number
-  startDate: string
-  endDate: string
-  status: string
+  name: string
+  description: string
+  price: number
+  duration: number
+  features: string[]
+  isActive: boolean
+  isTrial: boolean
 }
 
 interface Transaction {
@@ -108,7 +109,7 @@ export default function AdminPanel() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [users, setUsers] = useState<User[]>([])
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
   const [recentActivity, setRecentActivity] = useState<Activity[]>([])
@@ -125,15 +126,15 @@ export default function AdminPanel() {
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json()
         setAnalytics({
-          totalUsers: analyticsData.totalUsers,
-          activeUsers: analyticsData.totalUsers - analyticsData.pendingApprovals,
-          totalSellers: analyticsData.sellers,
-          totalBuyers: analyticsData.buyers,
-          monthlyRevenue: analyticsData.monthlyRevenue,
-          totalTransactions: analyticsData.totalTransactions,
-          commissionRevenue: analyticsData.totalRevenue,
-          pendingApprovals: analyticsData.pendingApprovals,
-          activeSubscriptions: analyticsData.activeSubscriptions
+          totalUsers: analyticsData.totalUsers || 0,
+          activeUsers: (analyticsData.totalUsers || 0) - (analyticsData.pendingApprovals || 0),
+          totalSellers: analyticsData.sellers || 0,
+          totalBuyers: analyticsData.buyers || 0,
+          monthlyRevenue: analyticsData.monthlyRevenue || 0,
+          totalTransactions: analyticsData.totalTransactions || 0,
+          commissionRevenue: analyticsData.totalRevenue || 0,
+          pendingApprovals: analyticsData.pendingApprovals || 0,
+          activeSubscriptions: analyticsData.activeSubscriptions || 0
         })
       }
 
@@ -142,13 +143,6 @@ export default function AdminPanel() {
       if (usersResponse.ok) {
         const usersData = await usersResponse.json()
         setUsers(usersData.users || [])
-      }
-
-      // Fetch subscriptions data
-      const subscriptionsResponse = await fetch('/api/admin/subscriptions')
-      if (subscriptionsResponse.ok) {
-        const subscriptionsData = await subscriptionsResponse.json()
-        setSubscriptions(subscriptionsData.subscriptions || [])
       }
 
       // Fetch transactions data
@@ -188,8 +182,17 @@ export default function AdminPanel() {
 
   const handleUserApproval = async (userId: string, approve: boolean) => {
     try {
+      const token = getAuthToken()
+      if (!token) {
+        console.error('No authentication token found')
+        return
+      }
+
       const response = await fetch(`/api/admin/users/${userId}/${approve ? 'approve' : 'reject'}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
       
       if (response.ok) {
@@ -199,10 +202,17 @@ export default function AdminPanel() {
           const usersData = await usersResponse.json()
           setUsers(usersData.users || [])
         }
+      } else {
+        const errorData = await response.json()
+        console.error('User approval failed:', errorData.error)
       }
     } catch (error) {
       console.error('Error updating user approval:', error)
     }
+  }
+
+  const handleViewUser = (user: User) => {
+    alert(`User Details:\n\nName: ${user.name}\nEmail: ${user.email}\nRole: ${user.roles}\nCompany: ${user.companyName || 'N/A'}\nApproved: ${user.isApproved ? 'Yes' : 'No'}\nCreated: ${new Date(user.createdAt).toLocaleDateString()}`)
   }
 
   const filteredUsers = users.filter(user =>
@@ -226,7 +236,7 @@ export default function AdminPanel() {
     <SidebarProvider>
       <div className="flex h-screen bg-gray-50">
         {/* Sidebar */}
-        <Sidebar className="w-64">
+        <Sidebar className="w-64" collapsible="offcanvas">
           <SidebarHeader className="border-b p-4">
             <div className="flex items-center gap-2">
               <Shield className="h-6 w-6 text-blue-600" />
@@ -350,6 +360,7 @@ export default function AdminPanel() {
               </SidebarGroupContent>
             </SidebarGroup>
           </SidebarContent>
+          <SidebarRail />
         </Sidebar>
 
         {/* Main Content */}
@@ -407,7 +418,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Monthly Revenue</p>
                           <p className="text-2xl font-bold">Rs. {((analytics?.monthlyRevenue || 0) / 1000000).toFixed(1)}M</p>
-                          <p className="text-sm text-green-600">+12.5%</p>
+  
                         </div>
                         <DollarSign className="h-8 w-8 text-green-600" />
                       </div>
@@ -420,7 +431,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Total Transactions</p>
                           <p className="text-2xl font-bold">{analytics?.totalTransactions || 0}</p>
-                          <p className="text-sm text-green-600">+8.2%</p>
+  
                         </div>
                         <CreditCard className="h-8 w-8 text-purple-600" />
                       </div>
@@ -433,7 +444,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Commission Revenue</p>
                           <p className="text-2xl font-bold">Rs. {((analytics?.commissionRevenue || 0) / 1000).toFixed(0)}K</p>
-                          <p className="text-sm text-green-600">+15.3%</p>
+    
                         </div>
                         <TrendingUp className="h-8 w-8 text-orange-600" />
                       </div>
@@ -449,16 +460,22 @@ export default function AdminPanel() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {recentActivity.map((activity) => (
-                          <div key={activity.id} className="flex items-center gap-3">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{activity.action}</p>
-                              <p className="text-xs text-gray-500">{activity.details}</p>
+                        {recentActivity.length > 0 ? (
+                          recentActivity.map((activity) => (
+                            <div key={activity.id} className="flex items-center gap-3">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{activity.action}</p>
+                                <p className="text-xs text-gray-500">{activity.details}</p>
+                              </div>
+                              <div className="text-xs text-gray-500">{activity.timestamp}</div>
                             </div>
-                            <div className="text-xs text-gray-500">{activity.timestamp}</div>
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">
+                            No recent activity available
                           </div>
-                        ))}
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -568,6 +585,14 @@ export default function AdminPanel() {
                             <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewUser(user)}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
                                 {!user.isApproved && (
                                   <>
                                     <Button
@@ -588,9 +613,6 @@ export default function AdminPanel() {
                                     </Button>
                                   </>
                                 )}
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -608,53 +630,154 @@ export default function AdminPanel() {
                 
                 <Card>
                   <CardHeader>
-                    <CardTitle>All Subscriptions</CardTitle>
-                    <CardDescription>Manage user subscriptions and plans</CardDescription>
+                    <CardTitle>Available Subscription Plans</CardTitle>
+                    <CardDescription>Manage subscription plans and pricing</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Plan</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Start Date</TableHead>
-                          <TableHead>End Date</TableHead>
+                          <TableHead>Plan Name</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Features</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {subscriptions.map((subscription) => (
-                          <TableRow key={subscription.id}>
-                            <TableCell>
-                              <div>
-                                <p className="font-medium">{subscription.userName}</p>
-                                <p className="text-sm text-gray-500">{subscription.userEmail}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={getRoleColor(subscription.planType)}>
-                                {subscription.planType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>Rs. {subscription.amount.toLocaleString()}</TableCell>
-                            <TableCell>{new Date(subscription.startDate).toLocaleDateString()}</TableCell>
-                            <TableCell>{new Date(subscription.endDate).toLocaleDateString()}</TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(subscription.status)}>
-                                {subscription.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        <TableRow>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">BASIC</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">Basic plan for small businesses</p>
+                          </TableCell>
+                          <TableCell>Rs. 5,000</TableCell>
+                          <TableCell>30 days</TableCell>
+                          <TableCell>
+                            <p className="text-sm">5 product listings</p>
+                            <p className="text-sm">Basic support</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">STANDARD</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">Standard plan for growing businesses</p>
+                          </TableCell>
+                          <TableCell>Rs. 10,000</TableCell>
+                          <TableCell>30 days</TableCell>
+                          <TableCell>
+                            <p className="text-sm">15 product listings</p>
+                            <p className="text-sm">Priority support</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">PREMIUM</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">Premium plan for large businesses</p>
+                          </TableCell>
+                          <TableCell>Rs. 20,000</TableCell>
+                          <TableCell>30 days</TableCell>
+                          <TableCell>
+                            <p className="text-sm">Unlimited product listings</p>
+                            <p className="text-sm">24/7 dedicated support</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-green-100 text-green-800">Active</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm">Edit</Button>
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Create New Subscription Plan</CardTitle>
+                    <CardDescription>Add a new subscription plan to the system</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Plan Name</label>
+                        <input 
+                          type="text" 
+                          className="w-full px-3 py-2 border rounded-md"
+                          placeholder="e.g., ENTERPRISE"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Price (Rs.)</label>
+                        <input 
+                          type="number" 
+                          className="w-full px-3 py-2 border rounded-md"
+                          placeholder="e.g., 25000"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Duration (days)</label>
+                        <input 
+                          type="number" 
+                          className="w-full px-3 py-2 border rounded-md"
+                          placeholder="e.g., 30"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Status</label>
+                        <select className="w-full px-3 py-2 border rounded-md">
+                          <option>Active</option>
+                          <option>Inactive</option>
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium mb-1">Description</label>
+                        <textarea 
+                          className="w-full px-3 py-2 border rounded-md"
+                          rows={3}
+                          placeholder="Describe the subscription plan features..."
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium mb-1">Features (one per line)</label>
+                        <textarea 
+                          className="w-full px-3 py-2 border rounded-md"
+                          rows={4}
+                          placeholder="Unlimited product listings&#10;24/7 dedicated support&#10;Advanced analytics..."
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <Button className="bg-blue-600 text-white">
+                        Create Subscription Plan
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -679,7 +802,6 @@ export default function AdminPanel() {
                           <TableHead>Commission</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Date</TableHead>
-                          <TableHead>Payment Method</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -688,15 +810,14 @@ export default function AdminPanel() {
                           <TableRow key={transaction.id}>
                             <TableCell className="font-medium">{transaction.buyerName}</TableCell>
                             <TableCell>{transaction.sellerName}</TableCell>
-                            <TableCell>Rs. {transaction.amount.toLocaleString()}</TableCell>
-                            <TableCell>Rs. {transaction.commission.toLocaleString()}</TableCell>
+                            <TableCell>Rs. {transaction.totalAmount?.toLocaleString() || '0'}</TableCell>
+                            <TableCell>Rs. {transaction.commissionAmount?.toLocaleString() || '0'}</TableCell>
                             <TableCell>
                               <Badge className={getStatusColor(transaction.status)}>
                                 {transaction.status}
                               </Badge>
                             </TableCell>
-                            <TableCell>{new Date(transaction.date).toLocaleDateString()}</TableCell>
-                            <TableCell>{transaction.paymentMethod || '-'}</TableCell>
+                            <TableCell>{new Date(transaction.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <Button variant="ghost" size="sm">
                                 <MoreHorizontal className="h-4 w-4" />
@@ -735,7 +856,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Monthly Revenue</p>
                           <p className="text-2xl font-bold">Rs. {((analytics?.monthlyRevenue || 0) / 1000000).toFixed(1)}M</p>
-                          <p className="text-sm text-green-600">+12.5%</p>
+  
                         </div>
                         <DollarSign className="h-8 w-8 text-green-600" />
                       </div>
@@ -748,7 +869,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Total Transactions</p>
                           <p className="text-2xl font-bold">{analytics?.totalTransactions || 0}</p>
-                          <p className="text-sm text-green-600">+8.2%</p>
+  
                         </div>
                         <CreditCard className="h-8 w-8 text-purple-600" />
                       </div>
@@ -761,7 +882,7 @@ export default function AdminPanel() {
                         <div>
                           <p className="text-sm text-gray-500">Commission Revenue</p>
                           <p className="text-2xl font-bold">Rs. {((analytics?.commissionRevenue || 0) / 1000).toFixed(0)}K</p>
-                          <p className="text-sm text-green-600">+15.3%</p>
+    
                         </div>
                         <TrendingUp className="h-8 w-8 text-orange-600" />
                       </div>

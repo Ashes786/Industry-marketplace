@@ -102,7 +102,6 @@ function AllTransactionsPageContent() {
                   <TableHead>Commission</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Payment Method</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -112,15 +111,14 @@ function AllTransactionsPageContent() {
                     <TableCell className="font-medium">#{transaction.id}</TableCell>
                     <TableCell>{transaction.buyerName}</TableCell>
                     <TableCell>{transaction.sellerName}</TableCell>
-                    <TableCell>Rs. {transaction.amount.toLocaleString()}</TableCell>
-                    <TableCell>Rs. {transaction.commission.toLocaleString()}</TableCell>
+                    <TableCell>Rs. {transaction.totalAmount?.toLocaleString() || '0'}</TableCell>
+                    <TableCell>Rs. {transaction.commissionAmount?.toLocaleString() || '0'}</TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(transaction.status)}>
                         {transaction.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{transaction.date}</TableCell>
-                    <TableCell>{transaction.paymentMethod}</TableCell>
+                    <TableCell>{new Date(transaction.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="outline">
                         <Eye className="h-3 w-3 mr-1" />
