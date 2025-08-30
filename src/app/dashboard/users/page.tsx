@@ -26,58 +26,26 @@ function UsersPageContent() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockUsers = [
-      {
-        id: '1',
-        name: 'Muhammad Raza',
-        email: 'raza@example.com',
-        phone: '03001234569',
-        roles: 'SELLER',
-        companyName: 'Industrial Solutions',
-        isApproved: false,
-        createdAt: '2024-01-18',
-        lastLogin: '2024-01-18'
-      },
-      {
-        id: '2',
-        name: 'Ayesha Malik',
-        email: 'ayesha@example.com',
-        phone: '03001234568',
-        roles: 'BUYER',
-        companyName: 'Construction Co.',
-        isApproved: true,
-        createdAt: '2024-01-17',
-        lastLogin: '2024-01-20'
-      },
-      {
-        id: '3',
-        name: 'Ahmed Khan',
-        email: 'ahmed@example.com',
-        phone: '03001234567',
-        roles: 'BUYER',
-        companyName: 'Construction Co.',
-        isApproved: true,
-        createdAt: '2024-01-15',
-        lastLogin: '2024-01-20'
-      },
-      {
-        id: '4',
-        name: 'Fatima Ali',
-        email: 'fatima@example.com',
-        phone: '03001234568',
-        roles: 'SELLER',
-        companyName: 'Textile Mills',
-        isApproved: true,
-        createdAt: '2024-01-10',
-        lastLogin: '2024-01-19'
+    // Fetch real users from API
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/admin/users')
+        if (response.ok) {
+          const data = await response.json()
+          setUsers(data.users || [])
+        } else {
+          // Fallback to empty array if API fails
+          setUsers([])
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error)
+        setUsers([])
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    setTimeout(() => {
-      setUsers(mockUsers)
-      setLoading(false)
-    }, 1000)
+    fetchUsers()
   }, [])
 
   const getRoleColor = (role: string) => {
@@ -91,8 +59,27 @@ function UsersPageContent() {
   }
 
   const handleUserApproval = async (userId: string, approve: boolean) => {
-    console.log(`${approve ? 'Approving' : 'Rejecting'} user: ${userId}`)
-    // TODO: Implement user approval/rejection API call
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/${approve ? 'approve' : 'reject'}`, {
+        method: 'POST'
+      })
+      
+      if (response.ok) {
+        // Refresh the users list
+        const fetchUsers = async () => {
+          const response = await fetch('/api/admin/users')
+          if (response.ok) {
+            const data = await response.json()
+            setUsers(data.users || [])
+          }
+        }
+        fetchUsers()
+      } else {
+        console.error(`Failed to ${approve ? 'approve' : 'reject'} user`)
+      }
+    } catch (error) {
+      console.error(`Error ${approve ? 'approving' : 'rejecting'} user:`, error)
+    }
   }
 
   const filteredUsers = users.filter((user: any) =>

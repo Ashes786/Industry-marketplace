@@ -19,7 +19,7 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     role: 'BUYER',
-    plan: 'STANDARD' // Default to STANDARD for sellers
+    plan: 'FREE' // Default to FREE for sellers
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -89,7 +89,8 @@ export default function SignUpPage() {
   }
 
   const planPricing = {
-    STANDARD: { price: '1-month Free Trial', description: 'Perfect for growing businesses' },
+    FREE: { price: 'Free', description: '1-month Standard trial included' },
+    STANDARD: { price: 'Rs. 5,000/month', description: 'Perfect for growing businesses' },
     PREMIUM: { price: 'Rs. 12,000/month', description: 'For established businesses' }
   }
 
@@ -263,16 +264,45 @@ export default function SignUpPage() {
                     <Label className="text-sm font-medium text-gray-700">
                       Subscription Plan
                     </Label>
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <div className="font-medium text-blue-900">1-Month STANDARD Trial</div>
-                          <div className="text-sm text-blue-700">
-                            You'll automatically get a 1-month free trial of our STANDARD plan. After the trial, you can upgrade to PREMIUM or continue with BASIC features.
+                    <div className="grid grid-cols-1 gap-3">
+                      {Object.entries(planPricing).map(([planKey, planInfo]) => (
+                        <div 
+                          key={planKey}
+                          className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                            formData.plan === planKey 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setFormData(prev => ({ ...prev, plan: planKey }))}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                                  formData.plan === planKey 
+                                    ? 'border-blue-500 bg-blue-500' 
+                                    : 'border-gray-300'
+                                }`}>
+                                  {formData.plan === planKey && (
+                                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                                  )}
+                                </div>
+                                <div className="font-medium text-gray-900">{planKey}</div>
+                                <div className="text-sm font-semibold text-blue-600">{planInfo.price}</div>
+                              </div>
+                              <div className="text-sm text-gray-600 ml-6">{planInfo.description}</div>
+                              {planKey === 'FREE' && (
+                                <div className="text-xs text-green-600 ml-6 mt-1">
+                                  ✓ Includes 1-month Standard trial
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      All plans start with a 1-month Standard trial. Choose your plan after the trial period.
                     </div>
                   </div>
                 )}

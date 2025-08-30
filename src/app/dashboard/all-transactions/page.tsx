@@ -21,64 +21,26 @@ function AllTransactionsPageContent() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockTransactions = [
-      {
-        id: '1',
-        buyerName: 'Ahmed Khan',
-        sellerName: 'Fatima Ali',
-        amount: 450000,
-        commission: 9000,
-        status: 'COMPLETED',
-        date: '2024-01-15',
-        paymentMethod: 'Bank Transfer'
-      },
-      {
-        id: '2',
-        buyerName: 'Construction Co.',
-        sellerName: 'Muhammad Raza',
-        amount: 350000,
-        commission: 7000,
-        status: 'PENDING',
-        date: '2024-01-20',
-        paymentMethod: 'EasyPaisa'
-      },
-      {
-        id: '3',
-        buyerName: 'Ahmed Khan',
-        sellerName: 'Steel Industries',
-        amount: 190000,
-        commission: 3800,
-        status: 'PAID',
-        date: '2024-01-10',
-        paymentMethod: 'JazzCash'
-      },
-      {
-        id: '4',
-        buyerName: 'Textile Mills',
-        sellerName: 'Industrial Solutions',
-        amount: 275000,
-        commission: 5500,
-        status: 'COMPLETED',
-        date: '2024-01-12',
-        paymentMethod: 'Bank Transfer'
-      },
-      {
-        id: '5',
-        buyerName: 'Construction Co.',
-        sellerName: 'Fatima Ali',
-        amount: 125000,
-        commission: 2500,
-        status: 'FAILED',
-        date: '2024-01-08',
-        paymentMethod: 'EasyPaisa'
+    // Fetch real transactions from API
+    const fetchTransactions = async () => {
+      try {
+        const response = await fetch('/api/admin/transactions')
+        if (response.ok) {
+          const data = await response.json()
+          setTransactions(data.transactions || [])
+        } else {
+          // Fallback to empty array if API fails
+          setTransactions([])
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+        setTransactions([])
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    setTimeout(() => {
-      setTransactions(mockTransactions)
-      setLoading(false)
-    }, 1000)
+    fetchTransactions()
   }, [])
 
   const getStatusColor = (status: string) => {

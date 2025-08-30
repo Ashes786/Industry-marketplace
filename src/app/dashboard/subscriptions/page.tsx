@@ -22,64 +22,26 @@ function SubscriptionsPageContent() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data - in real app, fetch from API
-    const mockSubscriptions = [
-      {
-        id: '1',
-        userName: 'Fatima Ali',
-        userEmail: 'fatima@example.com',
-        planType: 'STANDARD',
-        amount: 5000,
-        startDate: '2024-01-01',
-        endDate: '2024-02-01',
-        status: 'ACTIVE'
-      },
-      {
-        id: '2',
-        userName: 'Muhammad Raza',
-        userEmail: 'raza@example.com',
-        planType: 'BASIC',
-        amount: 0,
-        startDate: '2024-01-15',
-        endDate: '2025-01-15',
-        status: 'ACTIVE'
-      },
-      {
-        id: '3',
-        userName: 'Ahmed Khan',
-        userEmail: 'ahmed@example.com',
-        planType: 'PREMIUM',
-        amount: 15000,
-        startDate: '2024-01-01',
-        endDate: '2024-04-01',
-        status: 'ACTIVE'
-      },
-      {
-        id: '4',
-        userName: 'Ayesha Malik',
-        userEmail: 'ayesha@example.com',
-        planType: 'STANDARD',
-        amount: 5000,
-        startDate: '2023-12-01',
-        endDate: '2024-01-01',
-        status: 'EXPIRED'
-      },
-      {
-        id: '5',
-        userName: 'Bilal Ahmed',
-        userEmail: 'bilal@example.com',
-        planType: 'BASIC',
-        amount: 0,
-        startDate: '2024-01-10',
-        endDate: '2024-01-25',
-        status: 'CANCELLED'
+    // Fetch real subscriptions from API
+    const fetchSubscriptions = async () => {
+      try {
+        const response = await fetch('/api/admin/subscriptions')
+        if (response.ok) {
+          const data = await response.json()
+          setSubscriptions(data.subscriptions || [])
+        } else {
+          // Fallback to empty array if API fails
+          setSubscriptions([])
+        }
+      } catch (error) {
+        console.error('Error fetching subscriptions:', error)
+        setSubscriptions([])
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    setTimeout(() => {
-      setSubscriptions(mockSubscriptions)
-      setLoading(false)
-    }, 1000)
+    fetchSubscriptions()
   }, [])
 
   const getStatusColor = (status: string) => {

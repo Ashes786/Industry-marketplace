@@ -5,9 +5,17 @@ import { useAuth } from '@/lib/simple-auth'
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Bell, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Menu, Bell, LogOut, ChevronLeft, ChevronRight, User, Settings, HelpCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -87,14 +95,48 @@ export function DashboardLayout({ children, user, subscription, title, subtitle 
 
               {/* User Profile */}
               <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right min-w-0">
-                  <div className="font-medium text-gray-900 truncate">{user.name}</div>
-                  <div className="text-sm text-gray-600 truncate">{user.email}</div>
-                </div>
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="/placeholder-avatar.jpg" />
+                        <AvatarFallback className="text-xs">{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.name}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <a href="/dashboard/settings" className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span>Profile</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="/dashboard/settings" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <a href="/help-center" className="flex items-center gap-2">
+                        <HelpCircle className="h-4 w-4" />
+                        <span>Help & Support</span>
+                      </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-600">
+                      <LogOut className="h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
