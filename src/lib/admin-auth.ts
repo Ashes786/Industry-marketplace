@@ -29,12 +29,11 @@ export async function getAdminUser(request: NextRequest) {
           email: true,
           name: true,
           roles: true,
-          isAdmin: true,
           isApproved: true
         }
       })
 
-      if (!user || user.roles !== UserRole.ADMIN || !user.isAdmin) {
+      if (!user || user.roles !== UserRole.ADMIN || !user.isApproved) {
         return null
       }
 

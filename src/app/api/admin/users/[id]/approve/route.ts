@@ -6,12 +6,12 @@ import { UserRole, SubscriptionPlan, SubscriptionStatus } from '@prisma/client'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const adminUser = await requireAdmin(request)
     
-    const userId = params.id
+    const { id: userId } = await params
 
     // Get user details first
     const user = await db.user.findUnique({

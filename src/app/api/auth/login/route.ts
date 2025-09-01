@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user is approved
-    if (!user.isApproved && !user.isAdmin) {
+    if (!user.isApproved && user.roles !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Account pending approval' },
         { status: 403 }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       role: user.roles,
-      isAdmin: user.isAdmin
+      isAdmin: user.roles === 'ADMIN'
     })).toString('base64')
 
     return NextResponse.json({
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         roles: user.roles,
         companyName: user.companyName,
-        isAdmin: user.isAdmin,
+        isAdmin: user.roles === 'ADMIN',
         subscription: activeSubscription
       },
       token

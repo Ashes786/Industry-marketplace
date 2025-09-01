@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useToast } from '@/hooks/use-toast'
 import { 
   Users, 
   Search, 
@@ -21,6 +22,7 @@ import {
 
 function UsersPageContent() {
   const { user } = useAuth()
+  const { toast } = useToast()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -34,10 +36,27 @@ function UsersPageContent() {
           const data = await response.json()
           setUsers(data.users || [])
         } else {
+          const errorData = await response.json().catch(() => ({}))
+          const errorMessage = errorData.error || 'Failed to fetch users'
+          
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          })
+          
           // Fallback to empty array if API fails
           setUsers([])
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Error fetching users'
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        
         console.error('Error fetching users:', error)
         setUsers([])
       } finally {
@@ -74,10 +93,35 @@ function UsersPageContent() {
           }
         }
         fetchUsers()
+        
+        // Show success toast
+        toast({
+          title: "Success",
+          description: `User ${approve ? 'approved' : 'rejected'} successfully`,
+        })
       } else {
-        console.error(`Failed to ${approve ? 'approve' : 'reject'} user`)
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || `Failed to ${approve ? 'approve' : 'reject'} user`
+        
+        // Show error toast
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+        
+        console.error(`Failed to ${approve ? 'approve' : 'reject'} user:`, errorMessage)
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : `Error ${approve ? 'approving' : 'rejecting'} user`
+      
+      // Show error toast
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+      
       console.error(`Error ${approve ? 'approving' : 'rejecting'} user:`, error)
     }
   }
