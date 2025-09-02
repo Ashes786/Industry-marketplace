@@ -19,6 +19,22 @@ import {
   Eye,
   Loader2
 } from 'lucide-react'
+import { UserRole } from '@prisma/client'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui'
 
 function UsersPageContent() {
   const { user } = useAuth()
@@ -26,6 +42,22 @@ function UsersPageContent() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    roles: 'BUYER',
+    companyName: '',
+    address: '',
+    city: '',
+    country: 'Pakistan',
+    password: '',
+    confirmPassword: ''
+  })
+  const [isCreating, setIsCreating] = useState(false)
 
   useEffect(() => {
     // Fetch real users from API
@@ -126,6 +158,103 @@ function UsersPageContent() {
     }
   }
 
+  const handleViewUser = (user: any) => {
+    setSelectedUser(user)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleCreateUser = async () => {
+    if (newUser.password !== newUser.confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsCreating(true)
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          roles: newUser.roles,
+          companyName: newUser.companyName,
+          address: newUser.address,
+          city: newUser.city,
+          country: newUser.country,
+          password: newUser.password,
+        }),
+      })
+
+      if (response.ok) {
+        // Refresh the users list
+        const fetchUsers = async () => {
+          const response = await fetch('/api/admin/users')
+          if (response.ok) {
+            const data = await response.json()
+            setUsers(data.users || [])
+          }
+        }
+        fetchUsers()
+
+        // Reset form and close dialog
+        setNewUser({
+          name: '',
+          email: '',
+          phone: '',
+          roles: 'BUYER',
+          companyName: '',
+          address: '',
+          city: '',
+          country: 'Pakistan',
+          password: '',
+          confirmPassword: ''
+        })
+        setIsAddDialogOpen(false)
+
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        })
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        const errorMessage = errorData.error || 'Failed to create user'
+        
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error creating user'
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
   const filteredUsers = users.filter((user: any) =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,10 +294,114 @@ function UsersPageContent() {
                 />
               </div>
             </div>
-            <Button className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4" />
-              Add User
-            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Add User
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Create New User</DialogTitle>
+                  <DialogDescription>
+                    Create a new user account for the platform.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={newUser.name}
+                      onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email *
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="phone" className="text-right">
+                      Phone
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="role" className="text-right">
+                      Role *
+                    </Label>
+                    <Select value={newUser.roles} onValueChange={(value) => setNewUser({...newUser, roles: value})}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="BUYER">Buyer</SelectItem>
+                        <SelectItem value="SELLER">Seller</SelectItem>
+                        <SelectItem value="BOTH">Both</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="company" className="text-right">
+                      Company
+                    </Label>
+                    <Input
+                      id="company"
+                      value={newUser.companyName}
+                      onChange={(e) => setNewUser({...newUser, companyName: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="password" className="text-right">
+                      Password *
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="confirmPassword" className="text-right">
+                      Confirm *
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={newUser.confirmPassword}
+                      onChange={(e) => setNewUser({...newUser, confirmPassword: e.target.value})}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateUser} disabled={isCreating}>
+                    {isCreating ? 'Creating...' : 'Create User'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="rounded-md border">
@@ -229,7 +462,7 @@ function UsersPageContent() {
                             </Button>
                           </>
                         )}
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleViewUser(user)}>
                           <Eye className="h-3 w-3" />
                         </Button>
                       </div>
@@ -241,6 +474,69 @@ function UsersPageContent() {
           </div>
         </CardContent>
       </Card>
+
+      {/* View User Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about the selected user.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Name:</Label>
+                <div className="col-span-3">{selectedUser.name}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Email:</Label>
+                <div className="col-span-3">{selectedUser.email}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Phone:</Label>
+                <div className="col-span-3">{selectedUser.phone || 'Not provided'}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Role:</Label>
+                <div className="col-span-3">
+                  <Badge className={getRoleColor(selectedUser.roles)}>
+                    {selectedUser.roles}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Company:</Label>
+                <div className="col-span-3">{selectedUser.companyName || 'Not provided'}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Status:</Label>
+                <div className="col-span-3">
+                  <Badge className={selectedUser.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                    {selectedUser.isApproved ? 'Approved' : 'Pending'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Joined:</Label>
+                <div className="col-span-3">{new Date(selectedUser.createdAt).toLocaleDateString()}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">Country:</Label>
+                <div className="col-span-3">{selectedUser.country || 'Pakistan'}</div>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right font-medium">City:</Label>
+                <div className="col-span-3">{selectedUser.city || 'Not provided'}</div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setIsViewDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

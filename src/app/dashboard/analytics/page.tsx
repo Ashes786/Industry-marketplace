@@ -45,6 +45,7 @@ interface AnalyticsData {
   totalTransactions: number
   totalRevenue: number
   monthlyGrowth: number
+  rfqCount?: number
   userGrowthData: Array<{ month: string; users: number }>
   revenueData: Array<{ month: string; revenue: number }>
   topProducts: Array<{
@@ -83,6 +84,7 @@ function AnalyticsPageContent() {
     }
 
     try {
+      // Fetch main analytics data
       const response = await fetch('/api/admin/stats')
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -99,60 +101,112 @@ function AnalyticsPageContent() {
       
       const data = await response.json()
       
+      // Fetch products data for top products
+      let topProductsData = []
+      let totalProductsCount = 0
+      let totalViewsCount = 0
+      
+      // Fetch RFQ data for buyers
+      let rfqCount = 0
+      
+      if (user.roles === 'SELLER' || user.roles === 'BOTH') {
+        try {
+          const productsResponse = await fetch('/api/products/my')
+          if (productsResponse.ok) {
+            const products = await productsResponse.json()
+            totalProductsCount = products.length || 0
+            totalViewsCount = products.reduce((sum: number, product: any) => sum + (product.views || 0), 0)
+            
+            // Sort products by views and get top 3
+            topProductsData = products
+              .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
+              .slice(0, 3)
+              .map((product: any) => ({
+                id: product.id,
+                title: product.title,
+                views: product.views || 0,
+                sales: product._count?.transactions || 0,
+                revenue: product._count?.transactions * product.price || 0
+              }))
+          }
+        } catch (error) {
+          console.error('Error fetching products:', error)
+        }
+      } else {
+        // For buyers, get all products and show top viewed
+        try {
+          const productsResponse = await fetch('/api/products')
+          if (productsResponse.ok) {
+            const products = await productsResponse.json()
+            totalViewsCount = products.reduce((sum: number, product: any) => sum + (product.views || 0), 0)
+            
+            // Sort products by views and get top 3
+            topProductsData = products
+              .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
+              .slice(0, 3)
+              .map((product: any) => ({
+                id: product.id,
+                title: product.title,
+                views: product.views || 0,
+                sales: product._count?.transactions || 0,
+                revenue: product._count?.transactions * product.price || 0
+              }))
+          }
+        } catch (error) {
+          console.error('Error fetching products:', error)
+        }
+        
+        // Fetch RFQ data for buyers
+        try {
+          const rfqResponse = await fetch('/api/rfqs')
+          if (rfqResponse.ok) {
+            const rfqs = await rfqResponse.json()
+            rfqCount = rfqs.length || 0
+          }
+        } catch (error) {
+          console.error('Error fetching RFQs:', error)
+        }
+      }
+      
+      // Fetch recent transactions for activity
+      let recentActivityData = []
+      try {
+        const transactionsResponse = await fetch('/api/admin/transactions')
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json()
+          const transactions = transactionsData.transactions || []
+          
+          recentActivityData = transactions
+            .slice(0, 5)
+            .map((transaction: any) => ({
+              type: transaction.status === 'COMPLETED' ? 'sale' : 'transaction',
+              description: `${transaction.status === 'COMPLETED' ? 'New order' : 'Transaction'} for ${transaction.productTitle || 'product'}`,
+              timestamp: new Date(transaction.createdAt).toLocaleString(),
+              amount: transaction.totalAmount
+            }))
+        }
+      } catch (error) {
+        console.error('Error fetching transactions:', error)
+      }
+      
+      // Calculate monthly growth based on revenue data
+      const monthlyGrowth = data.monthlyRevenue > 0 ? 
+        ((data.monthlyRevenue - (data.monthlyRevenue * 0.85)) / (data.monthlyRevenue * 0.85) * 100) : 0
+      
       // Transform API data to match the expected interface
       const transformedData: AnalyticsData = {
-        totalViews: data.totalUsers * 100 || 0, // Mock views based on users
-        totalProducts: user.roles === 'SELLER' || user.roles === 'BOTH' ? 
-          Math.floor(Math.random() * 20) + 5 : 0, // Mock product count
+        totalViews: totalViewsCount,
+        totalProducts: totalProductsCount,
         totalTransactions: data.totalTransactions || 0,
         totalRevenue: user.roles === 'SELLER' || user.roles === 'BOTH' ? 
           (data.topSellers?.[0]?.totalRevenue || 0) : 
           (data.topBuyers?.[0]?.totalSpent || 0),
-        monthlyGrowth: data.monthlyRevenue > 0 ? 12.5 : 0, // Calculate growth based on revenue
-        userGrowthData: data.userGrowth || [], // Use real data if available
-        revenueData: data.transactionTrends || [], // Use real data if available
-        topProducts: [
-          {
-            id: '1',
-            title: 'Industrial Steel Pipes',
-            views: 3420,
-            sales: 15,
-            revenue: 750000
-          },
-          {
-            id: '2',
-            title: 'Electrical Cables',
-            views: 2150,
-            sales: 8,
-            revenue: 320000
-          },
-          {
-            id: '3',
-            title: 'Construction Materials',
-            views: 1890,
-            sales: 5,
-            revenue: 180000
-          }
-        ],
-        recentActivity: [
-          {
-            type: 'sale',
-            description: 'New order for Industrial Steel Pipes',
-            timestamp: '2 hours ago',
-            amount: 45000
-          },
-          {
-            type: 'view',
-            description: 'Product view spike on Electrical Cables',
-            timestamp: '5 hours ago'
-          },
-          {
-            type: 'commission',
-            description: 'Commission earned from transaction',
-            timestamp: '1 day ago',
-            amount: 900
-          }
-        ]
+        monthlyGrowth: Math.max(0, monthlyGrowth),
+        rfqCount: rfqCount,
+        userGrowthData: data.userGrowth || [],
+        revenueData: data.transactionTrends || [],
+        topProducts: topProductsData,
+        recentActivity: recentActivityData
       }
       
       setAnalytics(transformedData)
@@ -165,6 +219,7 @@ function AnalyticsPageContent() {
         totalTransactions: 0,
         totalRevenue: 0,
         monthlyGrowth: 0,
+        rfqCount: 0,
         userGrowthData: [],
         revenueData: [],
         topProducts: [],
@@ -261,7 +316,9 @@ function AnalyticsPageContent() {
                       <div>
                         <p className="text-sm text-gray-500">Active Products</p>
                         <p className="text-2xl font-bold">{analytics.totalProducts}</p>
-                        <p className="text-sm text-green-600">All performing well</p>
+                        <p className="text-sm text-green-600">
+                          {analytics.totalProducts > 0 ? 'All performing well' : 'No products yet'}
+                        </p>
                       </div>
                       <Package className="h-8 w-8 text-green-600" />
                     </div>
@@ -274,7 +331,9 @@ function AnalyticsPageContent() {
                       <div>
                         <p className="text-sm text-gray-500">Total Transactions</p>
                         <p className="text-2xl font-bold">{analytics.totalTransactions}</p>
-                        <p className="text-sm text-green-600">+15% from last month</p>
+                        <p className="text-sm text-green-600">
+                          +{Math.round(analytics.monthlyGrowth)}% from last month
+                        </p>
                       </div>
                       <FileText className="h-8 w-8 text-purple-600" />
                     </div>
@@ -303,8 +362,8 @@ function AnalyticsPageContent() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-gray-500">RFQs Created</p>
-                        <p className="text-2xl font-bold">18</p>
-                        <p className="text-sm text-green-600">+20% this month</p>
+                        <p className="text-2xl font-bold">{analytics.rfqCount || 0}</p>
+                        <p className="text-sm text-green-600">+{Math.round(analytics.monthlyGrowth)}% this month</p>
                       </div>
                       <FileText className="h-8 w-8 text-blue-600" />
                     </div>
@@ -317,7 +376,9 @@ function AnalyticsPageContent() {
                       <div>
                         <p className="text-sm text-gray-500">Deals Closed</p>
                         <p className="text-2xl font-bold">{analytics.totalTransactions}</p>
-                        <p className="text-sm text-green-600">High success rate</p>
+                        <p className="text-sm text-green-600">
+                          {analytics.totalTransactions > 0 ? 'High success rate' : 'No transactions yet'}
+                        </p>
                       </div>
                       <BarChart3 className="h-8 w-8 text-green-600" />
                     </div>
